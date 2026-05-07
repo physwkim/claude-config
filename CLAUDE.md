@@ -93,3 +93,41 @@ Exempt: pure-local edits with no anchor that could repeat (comment
 typos within one function, single-call-site refactors). If unsure,
 do the grep — cost is ~10 seconds; the alternative is another full
 review round costing the user's attention.
+
+# Before starting non-trivial work
+
+Three checks that go BEFORE the first edit. Distinct from the
+"do not seek permission to skip work" ban above — that ban is
+about effort negotiation mid-task; these are about scope and
+correctness clarification before any edit.
+
+## Disambiguate interpretation
+
+If a request admits multiple plausible interpretations, list them
+and ask before picking. Examples:
+
+- "Make X faster" → response time vs throughput vs perceived UX?
+- "Add export" → API endpoint vs file download vs scheduled job?
+- "Fix the flaky test" → reduce flake rate vs deflake fully vs delete?
+
+Picking silently means building the wrong thing twice.
+
+## Define success up-front
+
+Before edits, state what "done" looks like as a verifiable check,
+not prose:
+
+- "Add validation" → "tests for invalid inputs pass"
+- "Fix bug X" → "regression test for X fails on main, passes after fix"
+- "Refactor X" → "existing tests pass before AND after"
+
+Weak criteria ("make it work", "improve performance") cause
+back-and-forth. Strong criteria let the loop close without
+re-checking with the user.
+
+## Senior-reviewer self-test
+
+Before declaring an edit done: would a senior reviewer call this
+overcomplicated? Single-call factored helper? Speculative
+configurability? Defensive validation against impossible inputs?
+If yes, simplify before reporting done.
