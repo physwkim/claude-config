@@ -94,6 +94,53 @@ typos within one function, single-call-site refactors). If unsure,
 do the grep — cost is ~10 seconds; the alternative is another full
 review round costing the user's attention.
 
+# Invariant-driven fixes
+
+If repeated review rounds keep finding adjacent failures after each
+"fix", stop treating them as separate bugs. That is evidence that the
+code lacks a closed invariant or a single owner for the state transition.
+
+Before another patch, write the invariant as a MUST / MUST NOT rule and
+name the owner that is allowed to perform the transition. Examples:
+
+- "Only the flush owner may commit registry timestamps."
+- "Only the loss owner may consume dirty-write loss markers."
+- "Every dirty writer drop must be classified as clean, deferred, or
+  lost before the writer handle is removed."
+
+Required closure checklist:
+
+1. Name the invariant.
+2. Name the single owner/gate responsible for enforcing it.
+3. Grep every operation that can bypass it (`flush`, `drop`, `evict`,
+   `remove`, `commit`, `take`, `delete`, `rename`, state-map mutation).
+4. Classify each bypass site: `through owner`, `must be routed through
+   owner`, or `distinct because ...`.
+5. Prefer a single helper/API boundary over repeated local fixes.
+6. Make illegal paths hard or impossible by type/API shape, visibility,
+   or ownership. Comments alone do not close an invariant.
+7. Add tests for the owner path and at least one formerly-bypassing path.
+
+Mandatory report section for this class of fix:
+
+- **Invariant:** the exact MUST / MUST NOT rule
+- **Owner/Gate:** function/type/task that owns the transition
+- **Bypass audit:** grep anchors and classified call sites
+- **Structural closure:** helper/API/type change that prevents re-opened
+  variants
+- **Tests:** owner path plus bypass regression cases
+
+Banned shortcuts:
+
+- Fixing the newest cited path while other sites can still mutate the
+  same state directly
+- Saying a path is "unlikely" instead of classifying it under the
+  invariant
+- Letting non-owners consume failure/loss markers, commit external
+  truth, or discard dirty state
+- Reporting success after a symptom fix when the invariant remains
+  enforceable only by convention
+
 # Before starting non-trivial work
 
 Three checks that go BEFORE the first edit. Distinct from the
