@@ -141,6 +141,36 @@ Banned shortcuts:
 - Reporting success after a symptom fix when the invariant remains
   enforceable only by convention
 
+## Strong state transitions
+
+When code sets a strong state marker (`dead`, `locked`, `in_flight`,
+`dirty=false`, `committed`, `evicted`) or changes external truth
+(`delete`, `rename`, `commit`, `publish`), every exit path after that
+transition must pass through one finalizer.
+
+Required:
+
+1. Identify the state marker or external truth being changed.
+2. List every early return, `?`, timeout, panic, and busy-lock path after
+   the transition.
+3. Ensure each path reaches cleanup via RAII guard, scope guard, or a
+   single owner API.
+4. If a resource is classified as failed or lost, prevent normal
+   destructor behavior from retrying the same operation.
+5. If external truth changed first (file deleted, row committed, name
+   renamed), synchronize in-memory owner state deterministically;
+   best-effort eviction is not enough.
+
+Banned shortcuts:
+
+- Setting `dead = true` / `in_flight = true` and relying on later manual
+  cleanup after fallible operations
+- Marking dirty state as lost while allowing normal `Drop` to flush it
+- Deleting or renaming external files while cached writers can remain
+  alive because a lock was busy
+- Treating flush success as durable success when bytes may be written to
+  a deleted or reader-invisible file
+
 # Before starting non-trivial work
 
 Three checks that go BEFORE the first edit. Distinct from the
