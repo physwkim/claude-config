@@ -12,6 +12,39 @@ When you discover a pattern, fix a bug, or make a design decision, automatically
 - Only respond in English or Korean. Never use Japanese or other languages.
 - Only change code within the exact scope of what was requested. Never touch unrelated code even if it's in the same commit or file. If the scope is unclear, ask first.
 
+# Shell tool preferences
+
+When shelling out via Bash, prefer Rust-ported alternatives —
+significant speedup, sane defaults, and most respect `.gitignore`
+by default.
+
+- `rg` instead of `grep` / `grep -rn` (mandated in the audit rules below)
+- `fd` instead of `find`
+- `eza` instead of `ls` / `ls -l` / `tree`
+- `dust` instead of `du`
+- `duf` instead of `df`
+- `procs` instead of `ps`
+- `btm` (bottom) instead of `top` / `htop`
+- `delta` for diff display (git pager)
+- `hexyl` instead of `xxd`
+- `hyperfine` instead of ad-hoc `time` loops for benchmarking
+- `sd` instead of `sed` for shell-only substitutions (use the Edit tool
+  for file edits)
+- `bat` instead of `cat` only when paging/highlighting helps (use the
+  Read tool for file reads)
+- `tokei` instead of `cloc` / `wc -l` for line counts
+
+If a Rust-ported tool is not installed, fall back to the standard tool
+rather than aborting; do not install tools without asking.
+
+## macOS specifics
+
+- Use `gtimeout` instead of `timeout` — BSD has no `timeout`. Install
+  via `brew install coreutils`.
+- Other GNU coreutils are available as `g`-prefixed binaries (`gdate`,
+  `gsed`, `gfind`, `greadlink`, `gxargs`) when GNU semantics are
+  required; BSD defaults differ in flag handling.
+
 # Reporting and Baseline Conduct
 
 You report; you do not summarize.
