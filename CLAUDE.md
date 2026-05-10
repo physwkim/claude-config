@@ -33,6 +33,9 @@ by default.
 - `bat` instead of `cat` only when paging/highlighting helps (use the
   Read tool for file reads)
 - `tokei` instead of `cloc` / `wc -l` for line counts
+- `cargo nextest run` instead of `cargo test` for Rust test runs —
+  faster parallel execution and clearer output. Doctests are not
+  covered by nextest; run `cargo test --doc` separately when needed.
 
 If a Rust-ported tool is not installed, fall back to the standard tool
 rather than aborting; do not install tools without asking.
