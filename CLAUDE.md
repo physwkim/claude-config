@@ -69,29 +69,29 @@ Required before editing the cited line:
 1. Identify the structural anchor — function/method symbol, env-var
    pattern, wire builder, enum variant, type-class branch
    (`if t == DBR_CLASS_NAME`), emission shape (`spawn_monitor_*`).
-2. Grep that anchor workspace-wide (`rg` / `grep -rn`).
+2. Search that anchor workspace-wide with `rg`.
 3. Enumerate every hit on screen.
 4. Classify each: `same defect (fix now)` or `distinct (one-line why)`.
 5. Only then apply edits — to every "same defect" hit in this change.
 
 Mandatory header on the response that begins the fix:
 
-- **Anchor:** `<grep regex>`
+- **Anchor:** `<rg regex>`
 - **Sites:** `<file:line>` list
 - **Same defect at:** subset to fix this round
 - **Distinct, skip:** subset with one-line justifications each
 
 Banned shortcuts:
 
-- "Cited site only" without grep evidence
+- "Cited site only" without `rg` evidence
 - "Looks isolated" / "obvious" / "small change so skipping audit"
 - "Will check the rest separately" — multi-round is the failure
   mode this rule exists to prevent
-- Skipping the grep because the cited fix is one line
+- Skipping the `rg` search because the cited fix is one line
 
 Exempt: pure-local edits with no anchor that could repeat (comment
 typos within one function, single-call-site refactors). If unsure,
-do the grep — cost is ~10 seconds; the alternative is another full
+run `rg` — cost is ~10 seconds; the alternative is another full
 review round costing the user's attention.
 
 # Invariant-driven fixes
@@ -112,7 +112,7 @@ Required closure checklist:
 
 1. Name the invariant.
 2. Name the single owner/gate responsible for enforcing it.
-3. Grep every operation that can bypass it (`flush`, `drop`, `evict`,
+3. `rg` every operation that can bypass it (`flush`, `drop`, `evict`,
    `remove`, `commit`, `take`, `delete`, `rename`, state-map mutation).
 4. Classify each bypass site: `through owner`, `must be routed through
    owner`, or `distinct because ...`.
@@ -125,7 +125,7 @@ Mandatory report section for this class of fix:
 
 - **Invariant:** the exact MUST / MUST NOT rule
 - **Owner/Gate:** function/type/task that owns the transition
-- **Bypass audit:** grep anchors and classified call sites
+- **Bypass audit:** `rg` anchors and classified call sites
 - **Structural closure:** helper/API/type change that prevents re-opened
   variants
 - **Tests:** owner path plus bypass regression cases
