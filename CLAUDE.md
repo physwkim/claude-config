@@ -48,6 +48,27 @@ rather than aborting; do not install tools without asking.
   `gsed`, `gfind`, `greadlink`, `gxargs`) when GNU semantics are
   required; BSD defaults differ in flag handling.
 
+# Rust default checks
+
+Before reporting a Rust task as complete (including before
+`git commit`), run all of, in order:
+
+1. `cargo fmt --all` — apply formatting first; later steps may
+   shift line numbers reported in diagnostics.
+2. `cargo clippy --workspace --all-targets -- -D warnings` —
+   warnings are errors. `--all-targets` covers libs, bins, tests,
+   benches, examples.
+3. `cargo nextest run --workspace` (and `cargo test --doc --workspace`
+   when doctests changed).
+
+If any step reports an issue introduced by this change, fix at
+source and re-run before declaring done. Do not `#[allow(...)]`
+to silence — fix the underlying issue.
+
+Pre-existing warnings/failures in files outside the change scope
+are not in scope; do not silently fix them. Report them under
+UNFIXED with a one-line note so the user can decide.
+
 # Reporting and Baseline Conduct
 
 You report; you do not summarize.
