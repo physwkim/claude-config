@@ -50,16 +50,32 @@ rather than aborting; do not install tools without asking.
 
 # Rust default checks
 
-Before reporting a Rust task as complete (including before
-`git commit`), run all of, in order:
+Scoped per change. `fmt` always; `clippy`/`nextest` limited to
+touched crates per commit; full workspace only before `git push`,
+`cargo publish`, or tag/release.
 
-1. `cargo fmt --all` — apply formatting first; later steps may
-   shift line numbers reported in diagnostics.
-2. `cargo clippy --workspace --all-targets -- -D warnings` —
-   warnings are errors. `--all-targets` covers libs, bins, tests,
-   benches, examples.
-3. `cargo nextest run --workspace` (and `cargo test --doc --workspace`
-   when doctests changed).
+Before reporting a Rust task as complete (including before
+`git commit`):
+
+1. `cargo fmt --all` — always. Apply formatting first; later steps
+   may shift line numbers reported in diagnostics. fmt is fast and
+   stabilizes clippy's reported lines.
+2. `cargo clippy -p <crate> --all-targets -- -D warnings` for every
+   crate touched by this change. Warnings are errors. `--all-targets`
+   covers libs, bins, tests, benches, examples. If the change
+   crosses crate boundaries (changed public API, trait bounds,
+   re-exports, build.rs, workspace deps), escalate to
+   `--workspace`.
+3. `cargo nextest run -p <crate>` for every crate touched. Add
+   `cargo test --doc -p <crate>` when doctests in that crate
+   changed. Same escalation rule: cross-crate API/dep change →
+   `--workspace`.
+
+Before `git push`, `cargo publish`, or tagging a release, run the
+full-workspace variants (`cargo clippy --workspace --all-targets
+-- -D warnings`, `cargo nextest run --workspace`, and
+`cargo test --doc --workspace` when any doctests changed) to catch
+cross-crate regressions the per-crate scope missed.
 
 If any step reports an issue introduced by this change, fix at
 source and re-run before declaring done. Do not `#[allow(...)]`
@@ -68,6 +84,10 @@ to silence — fix the underlying issue.
 Pre-existing warnings/failures in files outside the change scope
 are not in scope; do not silently fix them. Report them under
 UNFIXED with a one-line note so the user can decide.
+
+In the end-of-task report, name which scope was used
+(`-p <crate>` list vs `--workspace`) so the user can see whether
+the pre-push full-workspace pass is still owed.
 
 # Reporting and Baseline Conduct
 
