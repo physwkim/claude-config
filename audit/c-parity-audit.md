@@ -284,6 +284,24 @@ Inventory doc preserved at `crates/epics-ca-rs/doc/c-parity-review-2026-05-18.md
 - **Fixing during the audit phase** — interleaving slows everyone
   down and risks breaking the inventory mid-round.
 
+## See also
+
+`port-translation-lessons.md` covers:
+
+- What this audit cannot find (reference-side bugs, shared
+  wrong-direction errors, historical compat quirks).
+- How to classify findings by independence from the reference
+  for honest triage and reporting.
+- The structural vs methodology split (which findings are
+  irreducible language-gap; which are avoidable with front-load
+  investment).
+- Front-load methodologies (wire golden tests, interop CI,
+  malformed-peer fuzzer, throw-site enumeration) and which
+  finding classes they catch.
+
+Read it before reporting round results to the user; "27 findings,
+all closed" without the classification is a misleading status.
+
 ## Anti-pattern: the seven-rounds-of-reviewers smell
 
 If you've run 5+ "review rounds" using Rust-side methodology

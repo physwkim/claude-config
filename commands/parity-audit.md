@@ -41,6 +41,13 @@ Full methodology is documented at `~/codes/claude-config/audit/c-parity-audit.md
 that doc once for the principles; the workflow below is the
 execution-time checklist.
 
+Triage and post-audit reporting guidance is in
+`~/codes/claude-config/audit/port-translation-lessons.md`. Read
+it before classifying findings or summarising round results;
+it covers what the audit cannot find (reference-side bugs),
+how to categorise findings by independence from the reference,
+and front-load methodologies that reduce future cycle count.
+
 ## Workflow
 
 ### 1. Confirm inputs with the user (use AskUserQuestion)
