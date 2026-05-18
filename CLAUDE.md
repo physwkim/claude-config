@@ -12,6 +12,22 @@ When you discover a pattern, fix a bug, or make a design decision, automatically
 - Only respond in English or Korean. Never use Japanese or other languages.
 - Only change code within the exact scope of what was requested. Never touch unrelated code even if it's in the same commit or file. If the scope is unclear, ask first.
 
+# Auto-invoke /parity-audit
+
+If the cwd has a `doc/c-parity-review-*.md` or `parity-review/`
+inventory artefact AND the user's current ask is review-shaped
+(broad sweep: "review", "audit", "find bugs", "더 이상 에러 없는지",
+"추가 버그", "parity check"), invoke the `/parity-audit` skill
+*without first asking* — the inventory's existence is strong
+evidence the playbook is in active use, and asking adds round-trip
+cost. The skill itself prompts for the missing paths if needed.
+
+The skill is in available-skills as `parity-audit`; its frontmatter
+TRIGGER / SKIP rules are authoritative, this is just the
+session-start reminder. SKIP per those rules for targeted
+single-function reviews, intentional-redesign ports, or
+already-run-this-session-without-new-external-findings.
+
 # Shell tool preferences
 
 When shelling out via Bash, prefer Rust-ported alternatives —

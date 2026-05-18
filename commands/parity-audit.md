@@ -1,5 +1,34 @@
 ---
-description: Codex-style multi-agent C-parity audit of a Rust port against an upstream C reference.
+description: |
+  Codex-style multi-agent C-parity audit of a Rust port against an
+  upstream C/C++ reference. Spawns 3-5 read-only sub-agents in
+  parallel, each enumerating one slice of the C surface first and
+  mapping to the Rust port to find wire/byte/state divergences.
+  Produces a permanent inventory doc; commits doc-only before any
+  fixes.
+
+  TRIGGER (auto-invoke, do NOT first ask) when ALL of these hold:
+  (1) the cwd is a Rust crate that ports an external C/C++ codebase
+  (Cargo.toml present AND companion C reference exists on disk OR
+  the workspace already has a `doc/c-parity-review-*.md` /
+  `doc/*-parity-*.md` / `parity-review/` inventory artefact); AND
+  (2) the user's current ask is a *review*, *audit*, *find bugs*,
+  *parity check*, *byte-for-byte*, "더 이상 에러가 없는지 확인",
+  "추가 버그 찾아줘", or similar broad sweep. Existence of the
+  inventory artefact alone is strong evidence that the playbook
+  is in active use; treat it as a hard trigger when paired with
+  a review-shaped ask.
+
+  SKIP when: (a) user asks for a *targeted* review of a specific
+  function or file (single-scope fix request, not a sweep);
+  (b) the port is intentionally a redesign rather than wire-faithful
+  (PVA pvxs-port, gRPC reimplementation, etc.); (c) you have
+  already run /parity-audit this session and the inventory doc has
+  not received new external findings — re-running spends tokens
+  without surfacing more.
+
+  When triggered, run the workflow below — do NOT just suggest
+  it; invoke it.
 ---
 
 Run a **Codex-style C-parity audit**: enumerate the C reference
