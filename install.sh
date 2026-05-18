@@ -60,6 +60,19 @@ for entry in "${targets[@]}"; do
   installed_any=1
 done
 
+# Claude-only: per-file symlinks under ~/.claude/commands/. Each
+# command file becomes a `/<name>` slash command.  We symlink
+# per-file (not per-directory) so existing user-local commands in
+# ~/.claude/commands/ stay untouched.
+if command -v claude >/dev/null 2>&1 && [[ -d "$repo_dir/commands" ]]; then
+  mkdir -p "$HOME/.claude/commands"
+  for src in "$repo_dir"/commands/*.md; do
+    [[ -e "$src" ]] || continue
+    name="$(basename "$src")"
+    link_one "$src" "$HOME/.claude/commands/$name" "claude:commands/$name"
+  done
+fi
+
 if [[ "$installed_any" -eq 0 ]]; then
   echo
   echo "No supported CLI binaries (claude, codex) found in PATH."

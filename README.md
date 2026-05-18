@@ -5,7 +5,15 @@ across machines.
 
 Currently tracks:
 
-- `CLAUDE.md` — global instructions installed at `~/.claude/CLAUDE.md`.
+- `CLAUDE.md` — global instructions installed at `~/.claude/CLAUDE.md`
+  (and `~/.codex/AGENTS.md` if Codex is installed).
+- `commands/*.md` — Claude slash commands installed at
+  `~/.claude/commands/<name>.md`. Each file becomes a `/<name>`
+  slash command.
+- `audit/` — long-form methodology playbooks referenced from the
+  slash commands (e.g. `audit/c-parity-audit.md`). Not symlinked
+  anywhere; the slash commands cite the in-repo path so the docs
+  stay versioned with their commands.
 
 ## Install on a new machine
 
@@ -49,7 +57,12 @@ Likely future additions, not included yet:
 
 - `settings.json` (hooks, permissions)
 - `keybindings.json`
-- `commands/*.md` (slash commands)
 - `agents/*.md` (subagent definitions)
 
 Each would get its own symlink line in `install.sh`.
+
+## Slash commands
+
+| Command | Purpose | Backing playbook |
+|---|---|---|
+| `/parity-audit` | Codex-style multi-agent audit of a Rust port against an upstream C/C++ reference. Spawns 3–5 read-only sub-agents in parallel, each enumerating one slice of the C surface first and mapping to Rust to find divergences. Produces a permanent inventory doc; commits doc-only before any fixes. | [`audit/c-parity-audit.md`](audit/c-parity-audit.md) |
