@@ -14,6 +14,9 @@ Currently tracks:
   slash commands (e.g. `audit/c-parity-audit.md`). Not symlinked
   anywhere; the slash commands cite the in-repo path so the docs
   stay versioned with their commands.
+- `hooks/` — executable hook scripts referenced by absolute path
+  from `~/.claude/settings.json`. Not symlinked; the settings entry
+  points directly at the in-repo file so updates land via `git pull`.
 
 ## Install on a new machine
 
@@ -66,3 +69,34 @@ Each would get its own symlink line in `install.sh`.
 | Command | Purpose | Backing playbook |
 |---|---|---|
 | `/parity-audit` | Codex-style multi-agent audit of a Rust port against an upstream C/C++ reference. Spawns 3–5 read-only sub-agents in parallel, each enumerating one slice of the C surface first and mapping to Rust to find divergences. Produces a permanent inventory doc; commits doc-only before any fixes. | [`audit/c-parity-audit.md`](audit/c-parity-audit.md) |
+
+## Hooks
+
+| Hook | Event | Purpose |
+|---|---|---|
+| [`hooks/no-deferral-guard.py`](hooks/no-deferral-guard.py) | `Stop` | Block the response if the last assistant turn defers a discovered defect with phrases like `scope 밖`, `별도 PR`, `out of scope`, `separate PR` and lacks an `UNFIXED:` block. Forces the model to either fix the defect now or properly classify it. Escape hatch: include `[allow-defer]` in your message to pass through. |
+
+Register a hook by adding it to `~/.claude/settings.json` (this file
+is not symlinked from the repo today; edit it directly):
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/<you>/codes/claude-config/hooks/no-deferral-guard.py"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Multiple commands under the same `matcher` run together; if any exits
+with code 2, Claude is forced to continue with the hook's stderr
+reinjected as a new user message.
