@@ -210,13 +210,8 @@ viewpoint *up the chain*, not stop at what they marked:
 
 Find the structural problem first, then fix at the highest level that
 closes the family — refactor to the structure rather than patching the
-cited spot. This is the cheaper choice on time and cost, not the more
-expensive one: patching only the marked line leaves the structure
-intact, so it re-emits adjacent defects and you pay another review round
-each time. Diagnosing the structure once and refactoring to it absorbs
-all the rounds the unfixed structure would have produced. The
-reviewer's citation is the entry point to the investigation, not its
-boundary.
+cited spot. The reviewer's citation is the entry point to the
+investigation, not its boundary.
 
 Apply this priority concretely:
 
@@ -232,13 +227,106 @@ Apply this priority concretely:
   [Structural fix vs. clever patch]), surface it for sign-off rather
   than silently picking the patch to avoid the conversation.
 
-Guardrail — this is not license to over-engineer. "Structural" means
-removing dual meaning / a runtime gate / a special-cased boundary that
-is *actually* producing defects, not adding speculative configurability
-or abstraction for hypothetical futures (that is still banned by the
-senior-reviewer self-test). Full primitive redesign is triggered by
-*repeated rounds on the same primitive*, not by a single first-time
-bug — see the mechanics below.
+Guardrail — this is not license to over-engineer or to sprawl the diff.
+"Structural" means removing dual meaning / a runtime gate / a
+special-cased boundary that is *actually* producing defects, not adding
+speculative configurability or abstraction for hypothetical futures
+(that is still banned by the senior-reviewer self-test). Two scope
+clarifications so this does not collide with the rules above:
+
+- **Scope (vs Global Rules: "only the requested scope").** The defect
+  family and its structural cause *are* the scope of the bug — fixing
+  them is in scope, not a detour, and the citation does not cap it. This
+  is still not license to touch unrelated code; a structural fix large
+  enough to be its own change is confirmed with the user before you
+  sprawl into it.
+- **Fix vs redesign.** Preferring the structural *fix* over a patch
+  applies *always*, even to a first-time bug — choose the version that
+  closes the family. Full primitive *redesign* (rewriting the data
+  structure or state machine) is the heavier move, triggered by
+  *repeated rounds on the same primitive*, not a single first bug. The
+  mechanics for that redesign are the two subsections below.
+
+## Replace the primitive, do not keep patching it
+
+When repeated rounds keep finding edges around the *same* data
+structure or counter, the primitive is too weak to absorb the
+complexity. The problem is not that the last patch was wrong — it is
+that the design will keep producing new edges under any local patch,
+by LLM or human. Stop local-patching; redesign the primitive. Three
+moves, in order of leverage:
+
+1. **Explicit state over implicit value + flags.** If a cell holds a
+   value whose meaning depends on side flags (`is_paused`, `has_error`,
+   `disconnected`), model the state as one sum type with named variants
+   (`Ready(v)`, `Paused(v)`, `Error(e)`) instead of `Option<value>` plus
+   booleans. Inferring state from "value present AND flag set" is the
+   source of the adjacent edges — make the illegal combinations
+   unrepresentable by type.
+
+2. **Symmetric accounting through one owner.** A flow-control counter
+   (`pending`, credit, in-flight) must be incremented only by the actor
+   that performed the real forward operation (e.g. `try_send` actually
+   succeeded) and decremented only by the actor that performed the real
+   reverse (e.g. `recv` actually consumed). No side path (disconnect,
+   timeout, eviction) may poke the counter directly.
+
+3. **Return a structured delta; let the owner apply it.** A mutating
+   helper (e.g. `mark_disconnected`) should not reach into shared
+   counters itself. It returns a structured description of what changed
+   — channel pending cleared, error landed in channel vs in slot — and
+   the single owner applies that delta. This keeps the accounting in one
+   place even when many callers can trigger the transition.
+
+Then **test by invariant boundary, not by narrative scenario.**
+Enumerate the boundary values and write one case per boundary, not one
+case per story:
+
+- `old_pending == 0` vs `old_pending > 0` on disconnect
+- `queue_size < threshold` vs `>= threshold`
+- slot-set-before-pause vs value-arriving-during-pause
+- DISCONNECT error delivered via channel-success vs slot-fallback
+
+Per-scenario tests pass while leaving boundaries uncovered; per-boundary
+tests are what stop the next review round.
+
+## Structural fix vs. clever patch
+
+Even a fix that passes every current test can be a patch: it can *look*
+structural (it moves timing, adds a cell, renames a field) yet stay a
+patch if the underlying state keeps two meanings. The clever patch
+re-opens next round; the structural fix closes the family. Three litmus
+questions, applied before declaring a fix structural:
+
+1. **Does any field still mean two things by context?** If a cell means
+   "value that arrived during this pause" on one path and "backlog tail
+   from the previous resume" on another, it is still a patch — that dual
+   meaning is what spawns a new edge each round. A structural fix gives
+   every field one meaning that holds on all paths.
+
+2. **Is the gate a runtime check or a structural guarantee?** Prefer an
+   invariant that holds *by construction* — e.g. `gated.is_some() ⟹
+   paused`, enforced at every write site — so the consumer needs no
+   `if paused` branch at all. "We check for the illegal state at
+   runtime" is a patch; "the illegal state cannot be constructed" is
+   structural. Encode the implication in type/API shape, not a comment
+   or a runtime guard.
+
+3. **Is the rule uniform, or special-cased at a boundary?** A rule that
+   treats one boundary differently (queue semantics only at the
+   pause/resume edge, latest-value everywhere else) is an edge factory:
+   every new interaction with that boundary is a new case. Prefer one
+   uniform rule even when it requires a semantic change. State the
+   change explicitly so the user signs off — e.g. "an unconsumed
+   pre-pause value coalesces into the during-pause latest on resume;
+   this matches monitor latest-value semantics, and the non-uniform
+   queue-at-boundary rule it replaces was the source of the recurring
+   edges."
+
+When you catch yourself describing a fix as "moved the collapse to a
+cleverer point" or "preserved both X and Y by timing it right," stop:
+that is the patch tell. Ask which single invariant removes the dual
+meaning, and fix that instead.
 
 # Invariant-driven fixes
 
@@ -316,88 +404,6 @@ Banned shortcuts:
   alive because a lock was busy
 - Treating flush success as durable success when bytes may be written to
   a deleted or reader-invisible file
-
-## Replace the primitive, do not keep patching it
-
-When repeated rounds keep finding edges around the *same* data
-structure or counter, the primitive is too weak to absorb the
-complexity. The problem is not that the last patch was wrong — it is
-that the design will keep producing new edges under any local patch,
-by LLM or human. Stop local-patching; redesign the primitive. Three
-moves, in order of leverage:
-
-1. **Explicit state over implicit value + flags.** If a cell holds a
-   value whose meaning depends on side flags (`is_paused`, `has_error`,
-   `disconnected`), model the state as one sum type with named variants
-   (`Ready(v)`, `Paused(v)`, `Error(e)`) instead of `Option<value>` plus
-   booleans. Inferring state from "value present AND flag set" is the
-   source of the adjacent edges — make the illegal combinations
-   unrepresentable by type.
-
-2. **Symmetric accounting through one owner.** A flow-control counter
-   (`pending`, credit, in-flight) must be incremented only by the actor
-   that performed the real forward operation (e.g. `try_send` actually
-   succeeded) and decremented only by the actor that performed the real
-   reverse (e.g. `recv` actually consumed). No side path (disconnect,
-   timeout, eviction) may poke the counter directly.
-
-3. **Return a structured delta; let the owner apply it.** A mutating
-   helper (e.g. `mark_disconnected`) should not reach into shared
-   counters itself. It returns a structured description of what changed
-   — channel pending cleared, error landed in channel vs in slot — and
-   the single owner applies that delta. This keeps the accounting in one
-   place even when many callers can trigger the transition.
-
-Then **test by invariant boundary, not by narrative scenario.**
-Enumerate the boundary values and write one case per boundary, not one
-case per story:
-
-- `old_pending == 0` vs `old_pending > 0` on disconnect
-- `queue_size < threshold` vs `>= threshold`
-- slot-set-before-pause vs value-arriving-during-pause
-- DISCONNECT error delivered via channel-success vs slot-fallback
-
-Per-scenario tests pass while leaving boundaries uncovered; per-boundary
-tests are what stop the next review round.
-
-## Structural fix vs. clever patch
-
-Prefer the structural fix over the clever patch — always, even when both
-pass the current tests. A fix can *look* structural (it moves timing,
-adds a cell, renames a field) and still be a patch if the underlying
-state keeps two meanings. The clever patch re-opens next round; the
-structural fix closes the family. Three litmus questions, applied before
-declaring a fix structural:
-
-1. **Does any field still mean two things by context?** If a cell means
-   "value that arrived during this pause" on one path and "backlog tail
-   from the previous resume" on another, it is still a patch — that dual
-   meaning is what spawns a new edge each round. A structural fix gives
-   every field one meaning that holds on all paths.
-
-2. **Is the gate a runtime check or a structural guarantee?** Prefer an
-   invariant that holds *by construction* — e.g. `gated.is_some() ⟹
-   paused`, enforced at every write site — so the consumer needs no
-   `if paused` branch at all. "We check for the illegal state at
-   runtime" is a patch; "the illegal state cannot be constructed" is
-   structural. Encode the implication in type/API shape, not a comment
-   or a runtime guard.
-
-3. **Is the rule uniform, or special-cased at a boundary?** A rule that
-   treats one boundary differently (queue semantics only at the
-   pause/resume edge, latest-value everywhere else) is an edge factory:
-   every new interaction with that boundary is a new case. Prefer one
-   uniform rule even when it requires a semantic change. State the
-   change explicitly so the user signs off — e.g. "an unconsumed
-   pre-pause value coalesces into the during-pause latest on resume;
-   this matches monitor latest-value semantics, and the non-uniform
-   queue-at-boundary rule it replaces was the source of the recurring
-   edges."
-
-When you catch yourself describing a fix as "moved the collapse to a
-cleverer point" or "preserved both X and Y by timing it right," stop:
-that is the patch tell. Ask which single invariant removes the dual
-meaning, and fix that instead.
 
 # Before starting non-trivial work
 
