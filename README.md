@@ -73,7 +73,15 @@ external hook commands). Instead, `install.sh` merges
 
 To add a setting to the repo-managed set, edit `settings.partial.json`
 and re-run `./install.sh` (or `git pull` on other machines and re-run).
-Currently managed: `autoCompactEnabled`, `autoCompactWindow`.
+Currently managed: `permissions.defaultMode`, `permissions.allow`,
+`enabledPlugins`, `effortLevel`, `autoUpdatesChannel`,
+`skipDangerousModePermissionPrompt`, `autoCompactEnabled`,
+`autoCompactWindow`.
+
+`permissions.allow` is an array, so the repo's list **replaces** any
+machine-local allow entries on merge — the repo owns the allowlist.
+`enabledPlugins` is an object, so it merges: repo plugins are added and
+machine-local plugins are kept.
 
 Note: array-valued keys (e.g. `hooks`) are **replaced**, not appended,
 by `*` — so do not put `hooks` in `settings.partial.json` unless you
