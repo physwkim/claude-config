@@ -264,6 +264,49 @@ Banned shortcuts:
 - Treating flush success as durable success when bytes may be written to
   a deleted or reader-invisible file
 
+## Replace the primitive, do not keep patching it
+
+When repeated rounds keep finding edges around the *same* data
+structure or counter, the primitive is too weak to absorb the
+complexity. The problem is not that the last patch was wrong — it is
+that the design will keep producing new edges under any local patch,
+by LLM or human. Stop local-patching; redesign the primitive. Three
+moves, in order of leverage:
+
+1. **Explicit state over implicit value + flags.** If a cell holds a
+   value whose meaning depends on side flags (`is_paused`, `has_error`,
+   `disconnected`), model the state as one sum type with named variants
+   (`Ready(v)`, `Paused(v)`, `Error(e)`) instead of `Option<value>` plus
+   booleans. Inferring state from "value present AND flag set" is the
+   source of the adjacent edges — make the illegal combinations
+   unrepresentable by type.
+
+2. **Symmetric accounting through one owner.** A flow-control counter
+   (`pending`, credit, in-flight) must be incremented only by the actor
+   that performed the real forward operation (e.g. `try_send` actually
+   succeeded) and decremented only by the actor that performed the real
+   reverse (e.g. `recv` actually consumed). No side path (disconnect,
+   timeout, eviction) may poke the counter directly.
+
+3. **Return a structured delta; let the owner apply it.** A mutating
+   helper (e.g. `mark_disconnected`) should not reach into shared
+   counters itself. It returns a structured description of what changed
+   — channel pending cleared, error landed in channel vs in slot — and
+   the single owner applies that delta. This keeps the accounting in one
+   place even when many callers can trigger the transition.
+
+Then **test by invariant boundary, not by narrative scenario.**
+Enumerate the boundary values and write one case per boundary, not one
+case per story:
+
+- `old_pending == 0` vs `old_pending > 0` on disconnect
+- `queue_size < threshold` vs `>= threshold`
+- slot-set-before-pause vs value-arriving-during-pause
+- DISCONNECT error delivered via channel-success vs slot-fallback
+
+Per-scenario tests pass while leaving boundaries uncovered; per-boundary
+tests are what stop the next review round.
+
 # Before starting non-trivial work
 
 Three checks that go BEFORE the first edit. Distinct from the
