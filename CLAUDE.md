@@ -307,6 +307,45 @@ case per story:
 Per-scenario tests pass while leaving boundaries uncovered; per-boundary
 tests are what stop the next review round.
 
+## Structural fix vs. clever patch
+
+Prefer the structural fix over the clever patch — always, even when both
+pass the current tests. A fix can *look* structural (it moves timing,
+adds a cell, renames a field) and still be a patch if the underlying
+state keeps two meanings. The clever patch re-opens next round; the
+structural fix closes the family. Three litmus questions, applied before
+declaring a fix structural:
+
+1. **Does any field still mean two things by context?** If a cell means
+   "value that arrived during this pause" on one path and "backlog tail
+   from the previous resume" on another, it is still a patch — that dual
+   meaning is what spawns a new edge each round. A structural fix gives
+   every field one meaning that holds on all paths.
+
+2. **Is the gate a runtime check or a structural guarantee?** Prefer an
+   invariant that holds *by construction* — e.g. `gated.is_some() ⟹
+   paused`, enforced at every write site — so the consumer needs no
+   `if paused` branch at all. "We check for the illegal state at
+   runtime" is a patch; "the illegal state cannot be constructed" is
+   structural. Encode the implication in type/API shape, not a comment
+   or a runtime guard.
+
+3. **Is the rule uniform, or special-cased at a boundary?** A rule that
+   treats one boundary differently (queue semantics only at the
+   pause/resume edge, latest-value everywhere else) is an edge factory:
+   every new interaction with that boundary is a new case. Prefer one
+   uniform rule even when it requires a semantic change. State the
+   change explicitly so the user signs off — e.g. "an unconsumed
+   pre-pause value coalesces into the during-pause latest on resume;
+   this matches monitor latest-value semantics, and the non-uniform
+   queue-at-boundary rule it replaces was the source of the recurring
+   edges."
+
+When you catch yourself describing a fix as "moved the collapse to a
+cleverer point" or "preserved both X and Y by timing it right," stop:
+that is the patch tell. Ask which single invariant removes the dual
+meaning, and fix that instead.
+
 # Before starting non-trivial work
 
 Three checks that go BEFORE the first edit. Distinct from the
