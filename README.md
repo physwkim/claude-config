@@ -17,6 +17,9 @@ Currently tracks:
 - `hooks/` — executable hook scripts referenced by absolute path
   from `~/.claude/settings.json`. Not symlinked; the settings entry
   points directly at the in-repo file so updates land via `git pull`.
+- `settings.partial.json` — repo-managed Claude Code settings keys.
+  Not symlinked: `install.sh` **merges** these keys into the existing
+  `~/.claude/settings.json` (jq), so machine-specific entries survive.
 
 ## Install on a new machine
 
@@ -54,15 +57,34 @@ A copy means every edit needs a manual sync step (edit → copy →
 commit). With a symlink, `~/.claude/CLAUDE.md` *is* the repo file,
 so any edit Claude Code or you make goes through git directly.
 
+## Settings merge
+
+`~/.claude/settings.json` is **not** symlinked, because it mixes
+repo-portable keys with machine-specific ones (tool paths, plugins,
+external hook commands). Instead, `install.sh` merges
+`settings.partial.json` into it with `jq -s '.[0] * .[1]'`:
+
+- repo keys win on conflict (re-running enforces them);
+- every other key in the user's file is preserved;
+- the file is backed up to `settings.json.bak.<timestamp>` before any
+  change, and only when the merge actually changes something;
+- if `jq` is missing or the existing file is invalid JSON, the merge is
+  skipped and the file is left untouched.
+
+To add a setting to the repo-managed set, edit `settings.partial.json`
+and re-run `./install.sh` (or `git pull` on other machines and re-run).
+Currently managed: `autoCompactEnabled`, `autoCompactWindow`.
+
+Note: array-valued keys (e.g. `hooks`) are **replaced**, not appended,
+by `*` — so do not put `hooks` in `settings.partial.json` unless you
+intend to overwrite the user's entire hook array.
+
 ## Adding more files later
 
 Likely future additions, not included yet:
 
-- `settings.json` (hooks, permissions)
 - `keybindings.json`
 - `agents/*.md` (subagent definitions)
-
-Each would get its own symlink line in `install.sh`.
 
 ## Slash commands
 
