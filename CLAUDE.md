@@ -187,6 +187,59 @@ typos within one function, single-call-site refactors). If unsure,
 run `rg` — cost is ~10 seconds; the alternative is another full
 review round costing the user's attention.
 
+# Structure over patch, correctness over speed
+
+Default stance, not a special case: when a defect can be closed by a
+**structural fix** (remove the dual meaning, make the invariant hold by
+construction, replace a special-cased boundary with a uniform rule) or
+by a **patch** (add a runtime guard, special-case the new path, time a
+collapse more cleverly), take the structural fix — even when the patch
+is faster, smaller, or already written. Speed never justifies leaving
+the defect family open. A patch is local cheap / global expensive; the
+structural fix is local expensive / global cheap, and by the second
+round on the same primitive the structural fix is already the cheaper
+one.
+
+Read a bug report as a lens to widen, not a line to patch. A reviewer
+who cites one site is pointing at a symptom; your job is to extend their
+viewpoint *up the chain*, not stop at what they marked:
+
+  cited line
+    → every site with the same defect ([Fixes from reported defects])
+      → the structural cause that lets the whole family exist
+
+Find the structural problem first, then fix at the highest level that
+closes the family — refactor to the structure rather than patching the
+cited spot. This is the cheaper choice on time and cost, not the more
+expensive one: patching only the marked line leaves the structure
+intact, so it re-emits adjacent defects and you pay another review round
+each time. Diagnosing the structure once and refactoring to it absorbs
+all the rounds the unfixed structure would have produced. The
+reviewer's citation is the entry point to the investigation, not its
+boundary.
+
+Apply this priority concretely:
+
+- Do not propose the patch as the default and the structural fix as a
+  "bigger optional follow-up". If both exist, the structural fix is the
+  proposal; the patch is mentioned only as a fallback with a stated
+  reason (e.g. user explicitly time-boxed this).
+- "더 빠르다 / 더 작다 / scope가 작다"는 구조적 해결을 미루는 사유가
+  되지 않는다. 유일하게 유효한 사유는 사용자가 이 대화에서 명시적으로
+  시간/범위를 제한한 경우뿐 — 그때도 패치는 fallback으로 표시하고
+  남은 구조적 작업을 UNFIXED에 적는다.
+- If the structural fix needs a semantic change (see
+  [Structural fix vs. clever patch]), surface it for sign-off rather
+  than silently picking the patch to avoid the conversation.
+
+Guardrail — this is not license to over-engineer. "Structural" means
+removing dual meaning / a runtime gate / a special-cased boundary that
+is *actually* producing defects, not adding speculative configurability
+or abstraction for hypothetical futures (that is still banned by the
+senior-reviewer self-test). Full primitive redesign is triggered by
+*repeated rounds on the same primitive*, not by a single first-time
+bug — see the mechanics below.
+
 # Invariant-driven fixes
 
 If repeated review rounds keep finding adjacent failures after each
