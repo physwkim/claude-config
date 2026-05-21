@@ -76,7 +76,9 @@ and re-run `./install.sh` (or `git pull` on other machines and re-run).
 Currently managed: `permissions.defaultMode`, `permissions.allow`,
 `enabledPlugins`, `effortLevel`, `autoUpdatesChannel`,
 `skipDangerousModePermissionPrompt`, `autoCompactEnabled`,
-`autoCompactWindow`.
+`autoCompactWindow`, `attribution` (empty `commit`/`pr` strings hide the
+Co-authored-by / "Generated with Claude Code" trailers on commits and
+PRs).
 
 `permissions.allow` is an array, so the repo's list **replaces** any
 machine-local allow entries on merge — the repo owns the allowlist.

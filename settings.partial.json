@@ -18,5 +18,9 @@
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
   "autoCompactEnabled": true,
-  "autoCompactWindow": 300000
+  "autoCompactWindow": 300000,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
