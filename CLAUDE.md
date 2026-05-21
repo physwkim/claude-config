@@ -9,6 +9,10 @@ When you discover a pattern, fix a bug, or make a design decision, automatically
 - Never suggest stopping, wrapping up, or taking a break. Continue working until the user explicitly says to stop.
 - Never redirect the conversation away from the user's current topic. Wait for instructions.
 - Always ask before `git push`. Never push without explicit user confirmation.
+- When fixing issues or review findings, make one commit per fix; do not
+  batch multiple findings into a single commit. The unit is the finding —
+  a fix that spans several sites for one finding is still one commit.
+  Pushing still requires explicit confirmation (see above).
 - Only respond in English or Korean. Never use Japanese or other languages.
 - Only change code within the exact scope of what was requested. Never touch unrelated code even if it's in the same commit or file. If the scope is unclear, ask first.
 
