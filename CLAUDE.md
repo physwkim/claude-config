@@ -16,10 +16,11 @@ When you discover a pattern, fix a bug, or make a design decision, automatically
 - Only respond in English or Korean. Never use Japanese or other languages.
 - Only change code within the exact scope of what was requested. Never touch unrelated code even if it's in the same commit or file. If the scope is unclear, ask first.
 - If a task requires an original/reference source (e.g. the upstream
-  C/C++ for a parity audit, or a file to port or compare against) and it
-  is not available locally, stop and report that the source is not
-  present locally. Do not proceed on assumptions, guess its contents, or
-  fabricate it — ask for the path.
+  C/C++ for a parity audit, or a file to port or compare against), first
+  search for it locally (filesystem, sibling/parent dirs, common
+  reference locations). If the search finds nothing, stop and ask the
+  user for the path, reporting that it is not present locally. Never
+  proceed on assumptions, guess its contents, or fabricate it.
 
 # Auto-invoke /parity-audit
 
