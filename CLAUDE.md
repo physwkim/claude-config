@@ -38,6 +38,17 @@ session-start reminder. SKIP per those rules for targeted
 single-function reviews, intentional-redesign ports, or
 already-run-this-session-without-new-external-findings.
 
+# Reference source locations
+
+Upstream C/C++ originals for the `epics-rs` parity audits. Machine-local
+paths (this machine); if absent, apply the search-then-ask rule above
+rather than guessing:
+
+- EPICS base (C) — `/Users/stevek/codes/epics-base/`
+  (upstream for `epics-base-rs`, `epics-ca-rs`)
+- pvxs (C++) — `/Users/stevek/codes/epics-modules/pvxs/`
+  (upstream for `epics-pva-rs`)
+
 # Shell tool preferences
 
 When shelling out via Bash, prefer Rust-ported alternatives —
