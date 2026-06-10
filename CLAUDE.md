@@ -77,6 +77,37 @@ by default.
 If a Rust-ported tool is not installed, fall back to the standard tool
 rather than aborting; do not install tools without asking.
 
+## rg usage, esp. `-r` / `--replace`
+
+`rg [OPTIONS] PATTERN [PATH...]`. PATTERN is a regex by default
+(`-F`/`--fixed-strings` for literals, `-w` word boundary, `-i`/`-S`
+case). `-e PATTERN` to give a pattern that starts with `-` or to pass
+several patterns.
+
+`-r TEXT` / `--replace=TEXT` is OUTPUT-only — it rewrites how matches
+are PRINTED to stdout. It NEVER modifies files (no ripgrep flag does).
+To edit files use the Edit tool; for shell-only in-place file
+substitution use `sd`. Reach for `rg -r` only to preview a transform
+or to feed transformed text down a pipe.
+
+Rules for the `-r` replacement string:
+
+- Capture groups: `$1`, `$2` … by index (leftmost opening paren is
+  `$1`), `$0` is the whole match, `$name` for named groups. Use braces
+  to delimit when the next char is `[_0-9A-Za-z]` or to append text:
+  `${1}a` is group 1 then `a`, whereas `$1a` means the group named
+  `1a`.
+- An index/name that matches no group expands to an empty string.
+- `$$` emits a literal `$`.
+- By default `-r` replaces only the MATCHED span, not the whole line.
+  To rewrite a whole line, make PATTERN match the whole line.
+- In bash/zsh single-quote BOTH the pattern and the replacement so the
+  shell does not expand `$1`/`$name` to (usually empty) shell
+  variables: `rg 'foo(\w+)' -r 'bar$1'`. Double quotes will silently
+  drop the captures.
+- `-r` composes with `-o`/`--only-matching`; it is ignored under
+  `--json`.
+
 ## macOS specifics
 
 - Use `gtimeout` instead of `timeout` — BSD has no `timeout`. Install
