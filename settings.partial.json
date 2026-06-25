@@ -1,4 +1,17 @@
 {
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/codes/claude-config/hooks/rg-replace-guard.sh"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "defaultMode": "dontAsk",
     "allow": [
