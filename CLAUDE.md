@@ -44,9 +44,9 @@ Upstream C/C++ originals for the `epics-rs` parity audits. Machine-local
 paths (this machine); if absent, apply the search-then-ask rule above
 rather than guessing:
 
-- EPICS base (C) — `/Users/stevek/codes/epics-base/`
+- EPICS base (C) — `/home/stevek/work/epics-base/`
   (upstream for `epics-base-rs`, `epics-ca-rs`)
-- pvxs (C++) — `/Users/stevek/codes/epics-modules/pvxs/`
+- pvxs (C++) — `/home/stevek/work/epics-modules/pvxs/`
   (upstream for `epics-pva-rs`)
 
 # Shell tool preferences
