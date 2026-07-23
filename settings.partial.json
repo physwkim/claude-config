@@ -30,6 +30,7 @@
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
   "skipDangerousModePermissionPrompt": true,
+  "disableRemoteControl": true,
   "autoCompactEnabled": true,
   "autoCompactWindow": 300000,
   "attribution": {
