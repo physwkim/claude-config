@@ -24,28 +24,21 @@ When you discover a pattern, fix a bug, or make a design decision, automatically
 
 # PR and commit message style
 
-Model: epics-base PR #940 (`RTEMS-posix: free the epicsEventOSD in
-epicsEventDestroy()`) — short, prose, symbol-precise. Apply to every
-PR and commit I write.
+Model: epics-base PR #940 — the essence, briefly, in plain prose. It
+is a model of BREVITY, not a phrasing template; do not copy its
+opening words or force any fixed formula.
 
 - Commit headline: `<area>: <imperative change>` naming the exact
   function/symbol touched. Keep the repo's existing prefix convention
   (epics-rs uses `fix(scan):` / `build(scripts):` style prefixes).
-- Commit body: ONE short paragraph, wrapped ~72 columns, plain prose
-  stating cause → consequence with exact symbol names ("X() mallocs
-  the wrapper but Y() only destroys the embedded Z, leaking one heap
-  block per event lifecycle"). No bullets, no headers, no "This
-  commit", no hunk-by-hunk restatement of the diff.
+- Commit body: ONE short paragraph, wrapped ~72 columns, plain prose,
+  with exact symbol names. No bullets, no headers, no "This commit",
+  no hunk-by-hunk restatement of the diff.
 - PR title = the commit headline (multi-commit: the dominant one).
-- PR body: a few sentences of prose. Shape: how it was found ("Found
-  while testing on RTEMS 6 (qemu)") → root cause in one clause naming
-  the functions → what the change does ("This adds the missing
-  free(pSem)"). No section headers, no bullet lists, no bold, no
-  tables; evidence and long detail go in a doc/ file or a linked
-  comment, referenced from the body.
-- Multi-commit PRs: at most one extra prose sentence per commit. If
-  the body seems to need sections to be understandable, say so — the
-  PR is probably too big and should be split, not formatted harder.
+- PR body: a few sentences of prose saying only what a reviewer needs
+  — what changed and why it matters, in whatever words fit. No
+  section headers, no bullet lists, no bold, no tables; evidence and
+  long detail go in a doc/ file or a linked comment.
 
 # Auto-invoke /parity-audit
 
