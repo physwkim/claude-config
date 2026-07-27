@@ -28,17 +28,31 @@ Model: epics-base PR #940 — the essence, briefly, in plain prose. It
 is a model of BREVITY, not a phrasing template; do not copy its
 opening words or force any fixed formula.
 
+The reader is an expert in the domain and can read the diff. Write
+only what the diff does NOT show — the reason, the constraint, the
+non-obvious fact. Never re-narrate the change itself.
+
 - Commit headline: `<area>: <imperative change>` naming the exact
   function/symbol touched. Keep the repo's existing prefix convention
   (epics-rs uses `fix(scan):` / `build(scripts):` style prefixes).
-- Commit body: ONE short paragraph, wrapped ~72 columns, plain prose,
-  with exact symbol names. No bullets, no headers, no "This commit",
-  no hunk-by-hunk restatement of the diff.
-- PR title = the commit headline (multi-commit: the dominant one).
-- PR body: a few sentences of prose saying only what a reviewer needs
-  — what changed and why it matters, in whatever words fit. No
-  section headers, no bullet lists, no bold, no tables; evidence and
-  long detail go in a doc/ file or a linked comment.
+- Commit body: 2–4 lines, wrapped ~72 columns, plain prose, with
+  exact symbol names. No bullets, no headers, no "This commit", no
+  hunk-by-hunk restatement of the diff. If the headline already says
+  it, omit the body.
+- PR title = the commit headline (multi-commit: the dominant one, or
+  the shared cause when the commits are one fix split in two).
+- PR body: 1–3 sentences, one is normal. Only what a reviewer needs
+  and cannot see. No section headers, no bullet lists, no bold, no
+  tables; evidence and long detail go in a doc/ file or a linked
+  comment.
+
+Same standard for chat replies: one or two lines when the diff or
+command output speaks for itself. Lead with the deliverable and the
+single open decision. Do not restate a clear diff, do not re-list
+evidence already established this session, and do not re-run every
+passing case in the report below — keep only lines carrying a fact
+the user does not already have (a failure, an UNFIXED item, a number
+they asked for).
 
 # Auto-invoke /parity-audit
 
