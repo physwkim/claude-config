@@ -20,6 +20,9 @@ Currently tracks:
 - `settings.partial.json` — repo-managed Claude Code settings keys.
   Not symlinked: `install.sh` **merges** these keys into the existing
   `~/.claude/settings.json` (jq), so machine-specific entries survive.
+- `claude-json.partial.json` — repo-managed **global config** keys, for
+  the options Claude Code accepts only in `~/.claude.json` and not in
+  `settings.json`. Merged the same way, under Claude's own write lock.
 
 ## Install on a new machine
 
@@ -88,6 +91,41 @@ machine-local plugins are kept.
 Note: array-valued keys (e.g. `hooks`) are **replaced**, not appended,
 by `*` — so do not put `hooks` in `settings.partial.json` unless you
 intend to overwrite the user's entire hook array.
+
+## Global config merge
+
+Some Claude Code options are **not** settings.json keys. They live in the
+global config at `~/.claude.json` (top level), the file `/config` writes
+to. Internally the CLI keeps two lists: `GLOBAL_CONFIG_KEYS` (everything
+storable there) and a 16-key subset that `settings.json` is allowed to
+override. A key in the first list but not the second can *only* be set in
+`~/.claude.json` — putting it in `settings.json` silently does nothing.
+
+`claude-json.partial.json` holds those keys, and `install.sh` merges it
+into `~/.claude.json` with the same `jq -s '.[0] * .[1]'` + backup dance
+as settings.json, plus three extra guards, because that file also holds
+auth, onboarding and per-project state:
+
+- **never created** — if `~/.claude.json` is missing, the merge is
+  skipped (run `claude` once first) rather than writing a stub;
+- **locked** — `install.sh` takes Claude's own mutex first. The CLI locks
+  the file with `proper-lockfile`, which is `mkdir("~/.claude.json.lock")`;
+  `mkdir` in the script reproduces that atomically, so EEXIST means a
+  session is mid-write and the merge is skipped instead of racing it. The
+  lock is released via `trap ... EXIT`, and Claude treats any lock older
+  than 10s as stale anyway;
+- **atomic** — the temp file is created beside the target so the final
+  `mv` is a same-filesystem rename.
+
+Currently managed:
+
+| Key | Effect |
+|---|---|
+| `leftArrowOpensAgents: false` | Stops `←` on an empty prompt from backgrounding the conversation and opening the agents/FleetView list. Default is on; `esc` returns, but the switch is involuntary. Equivalent to `/config` → "← opens agents" → off. |
+
+A running session caches the global config in-process, so the change
+takes effect in **newly started sessions**; sessions already open keep the
+old behaviour until restarted.
 
 ## Adding more files later
 

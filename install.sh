@@ -106,6 +106,49 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
   fi
 fi
 
+# Claude-only: merge repo-managed global-config keys into ~/.claude.json.
+# This is a DIFFERENT file from settings.json. A handful of Claude Code
+# options live only in the global config and are rejected in
+# settings.json — see README "Global config merge" for the list.
+#
+# ~/.claude.json also holds auth, onboarding and per-project state, and a
+# running Claude session rewrites it (read-modify-write). So unlike
+# settings.json we never create it, and we take Claude's own mutex first:
+# proper-lockfile locks with mkdir("<file>.lock"), which `mkdir` here
+# reproduces atomically — EEXIST means a session is mid-write.
+if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.json" ]]; then
+  gconfig="$HOME/.claude.json"
+  gclock="$gconfig.lock"
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "skip claude:.claude.json — jq not found; install jq to enable merge"
+  elif [[ ! -f "$gconfig" ]]; then
+    echo "skip claude:.claude.json — $gconfig not found; run claude once, then re-run"
+  elif ! jq empty "$gconfig" 2>/dev/null; then
+    echo "skip claude:.claude.json — $gconfig is not valid JSON, left untouched"
+  elif ! mkdir "$gclock" 2>/dev/null; then
+    echo "skip claude:.claude.json — write lock held by a running Claude session; re-run in a moment"
+  else
+    trap 'rmdir "$gclock" 2>/dev/null || true' EXIT
+    # Temp file lives beside the target so the mv is atomic (same fs).
+    tmp="$(mktemp "$gconfig.tmp.XXXXXX")"
+    if jq -s '.[0] * .[1]' "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
+       && [[ -s "$tmp" ]] && ! diff -q "$gconfig" "$tmp" >/dev/null 2>&1; then
+      bak="$gconfig.bak.$ts"
+      cp "$gconfig" "$bak"
+      mv "$tmp" "$gconfig"
+      echo "merge claude:.claude.json <- claude-json.partial.json (backup -> $bak)"
+    elif [[ -s "$tmp" ]]; then
+      rm -f "$tmp"
+      echo "ok   claude:.claude.json — repo global-config keys already present"
+    else
+      rm -f "$tmp"
+      echo "skip claude:.claude.json — jq merge failed, left untouched"
+    fi
+    rmdir "$gclock" 2>/dev/null || true
+    trap - EXIT
+  fi
+fi
+
 if [[ "$installed_any" -eq 0 ]]; then
   echo
   echo "No supported CLI binaries (claude, codex) found in PATH."
