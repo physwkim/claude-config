@@ -13,7 +13,7 @@
     ]
   },
   "permissions": {
-    "defaultMode": "dontAsk",
+    "defaultMode": "auto",
     "allow": [
       "Bash(cargo check:*)",
       "Bash(git add:*)",
