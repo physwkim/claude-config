@@ -89,8 +89,11 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
       echo "skip claude:settings.json — $settings is not valid JSON, left untouched"
     else
       tmp="$(mktemp)"
+      # Compare canonicalised JSON, not bytes: Claude Code rewrites these
+      # files itself, and jq's formatting of identical data would
+      # otherwise look like a change and trigger a needless rewrite.
       if jq -s '.[0] * .[1]' "$settings" "$repo_dir/settings.partial.json" > "$tmp" \
-         && ! diff -q "$settings" "$tmp" >/dev/null 2>&1; then
+         && ! diff -q <(jq -S . "$settings") <(jq -S . "$tmp") >/dev/null 2>&1; then
         bak="$settings.bak.$ts"
         cp "$settings" "$bak"
         mv "$tmp" "$settings"
@@ -132,7 +135,8 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.jso
     # Temp file lives beside the target so the mv is atomic (same fs).
     tmp="$(mktemp "$gconfig.tmp.XXXXXX")"
     if jq -s '.[0] * .[1]' "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
-       && [[ -s "$tmp" ]] && ! diff -q "$gconfig" "$tmp" >/dev/null 2>&1; then
+       && [[ -s "$tmp" ]] \
+       && ! diff -q <(jq -S . "$gconfig") <(jq -S . "$tmp") >/dev/null 2>&1; then
       bak="$gconfig.bak.$ts"
       cp "$gconfig" "$bak"
       mv "$tmp" "$gconfig"
