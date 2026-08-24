@@ -11,6 +11,43 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "$0")" && pwd -P)"
 ts="$(date +%Y%m%d-%H%M%S)"
 
+# jq program for the settings merge. Slurped inputs: [0] the user's
+# settings.json, [1] settings.partial.json. $repo carries this repo's
+# hook entries with paths already resolved (event -> [group]).
+#
+# `.[0] * .[1]` is the generic repo-keys-win merge. The hooks pass then
+# runs on its result and is deliberately NOT that merge: it drops only
+# the entries this repo owns — command basename listed in $repo, which
+# is what makes a re-run from a moved clone rewrite the path instead of
+# duplicating it — then splices the repo entries back in, appending to
+# the group with the same matcher if one exists and adding a new group
+# if not. Entries the repo does not own are never removed.
+hook_merge_prog='
+def strip_managed($names):
+  with_entries(
+    .value |= (
+      map(.hooks |= map(select(
+            ((.command // "") | split("/") | last) as $b
+            | ($names | index($b)) == null)))
+      | map(select((.hooks | length) > 0))
+    )
+  )
+  | with_entries(select((.value | length) > 0));
+def add_groups($repo):
+  reduce ($repo | to_entries[]) as $e (.;
+    reduce ($e.value[]) as $g (.;
+      (.[$e.key] // []) as $cur
+      | ($cur | map(.matcher // "") | index($g.matcher // "")) as $i
+      | if $i == null
+        then .[$e.key] = ($cur + [$g])
+        else .[$e.key] = ($cur | .[$i].hooks += ($g.hooks - .[$i].hooks))
+        end));
+[$repo | to_entries[] | .value[] | .hooks[]? | .command | split("/") | last] as $names
+| (.[0] * .[1]) as $merged
+| (($merged.hooks // {}) | strip_managed($names) | add_groups($repo)) as $h
+| if ($h | length) > 0 then $merged | .hooks = $h else $merged end
+'
+
 # Map: <cli-binary> <config-dir> <dest-filename>
 # CLAUDE.md from this repo is symlinked to each CLI's global
 # instruction file (claude → CLAUDE.md, codex → AGENTS.md).
@@ -78,6 +115,15 @@ fi
 # specific entries (tool paths, plugins, external hooks) that must
 # survive a reinstall. Repo keys win on conflict, so re-running enforces
 # them; everything else in the user's file is preserved.
+#
+# Hooks are merged separately, entry by entry, and live in their own
+# hooks.partial.json — NOT in settings.partial.json. `.[0] * .[1]`
+# replaces arrays wholesale, so a `hooks` key in the generic partial
+# would delete every hook the user already had for that event. The
+# invariant here is that a merge never removes a hook the user had:
+# install.sh owns only the entries whose command basename appears in
+# hooks.partial.json, rewriting their path to this clone, and leaves
+# every other entry alone.
 if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" ]]; then
   settings="$HOME/.claude/settings.json"
   if ! command -v jq >/dev/null 2>&1; then
@@ -88,11 +134,24 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
     if ! jq empty "$settings" 2>/dev/null; then
       echo "skip claude:settings.json — $settings is not valid JSON, left untouched"
     else
+      # Repo hook entries with {{REPO}} resolved to this clone. Done in
+      # jq, not sed, so a path with shell/JSON metacharacters survives.
+      hooks_json='{}'
+      if [[ -f "$repo_dir/hooks.partial.json" ]]; then
+        if ! hooks_json="$(jq -c --arg repo "$repo_dir" \
+             'walk(if type == "string" then gsub("\\{\\{REPO\\}\\}"; $repo) else . end)' \
+             "$repo_dir/hooks.partial.json" 2>/dev/null)"; then
+          echo "warn claude:settings.json — hooks.partial.json unreadable, hooks left untouched"
+          hooks_json='{}'
+        fi
+      fi
+
       tmp="$(mktemp)"
       # Compare canonicalised JSON, not bytes: Claude Code rewrites these
       # files itself, and jq's formatting of identical data would
       # otherwise look like a change and trigger a needless rewrite.
-      if jq -s '.[0] * .[1]' "$settings" "$repo_dir/settings.partial.json" > "$tmp" \
+      if jq -s --argjson repo "$hooks_json" "$hook_merge_prog" \
+              "$settings" "$repo_dir/settings.partial.json" > "$tmp" \
          && ! diff -q <(jq -S . "$settings") <(jq -S . "$tmp") >/dev/null 2>&1; then
         bak="$settings.bak.$ts"
         cp "$settings" "$bak"

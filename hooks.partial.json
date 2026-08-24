@@ -1,0 +1,13 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "{{REPO}}/hooks/rg-replace-guard.sh"
+        }
+      ]
+    }
+  ]
+}

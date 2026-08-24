@@ -20,6 +20,11 @@ Currently tracks:
 - `settings.partial.json` — repo-managed Claude Code settings keys.
   Not symlinked: `install.sh` **merges** these keys into the existing
   `~/.claude/settings.json` (jq), so machine-specific entries survive.
+- `hooks.partial.json` — repo-managed hook registrations, merged into
+  the same file but entry by entry rather than by the generic key
+  merge, so hooks you registered yourself are never dropped. `{{REPO}}`
+  in a command is replaced with this clone's absolute path at install
+  time.
 - `claude-json.partial.json` — repo-managed **global config** keys, for
   the options Claude Code accepts only in `~/.claude.json` and not in
   `settings.json`. Merged the same way, under Claude's own write lock.
@@ -88,9 +93,9 @@ machine-local allow entries on merge — the repo owns the allowlist.
 `enabledPlugins` is an object, so it merges: repo plugins are added and
 machine-local plugins are kept.
 
-Note: array-valued keys (e.g. `hooks`) are **replaced**, not appended,
-by `*` — so do not put `hooks` in `settings.partial.json` unless you
-intend to overwrite the user's entire hook array.
+Note: array-valued keys are **replaced**, not appended, by `*`. That is
+why `hooks` is not in this file — it would delete every hook you had
+registered for that event. See [Hook merge](#hook-merge).
 
 ## Global config merge
 
@@ -142,31 +147,44 @@ Likely future additions, not included yet:
 
 ## Hooks
 
-| Hook | Event | Purpose |
-|---|---|---|
-| [`hooks/no-deferral-guard.py`](hooks/no-deferral-guard.py) | `Stop` | Block the response if the last assistant turn defers a discovered defect with phrases like `scope 밖`, `별도 PR`, `out of scope`, `separate PR` and lacks an `UNFIXED:` block. Forces the model to either fix the defect now or properly classify it. Escape hatch: include `[allow-defer]` in your message to pass through. |
-
-Register a hook by adding it to `~/.claude/settings.json` (this file
-is not symlinked from the repo today; edit it directly):
-
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/<you>/codes/claude-config/hooks/no-deferral-guard.py"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+| Hook | Event | Managed | Purpose |
+|---|---|---|---|
+| [`hooks/rg-replace-guard.sh`](hooks/rg-replace-guard.sh) | `PreToolUse(Bash)` | yes | Block `rg` invocations that would silently rewrite output through `-r`/`--replace` — a short-flag bundle where `r` is not last (`-rn` parses as `--replace=n`), or an unquoted replacement value. Intentional quoted use passes. |
+| [`hooks/no-deferral-guard.py`](hooks/no-deferral-guard.py) | `Stop` | no | Block the response if the last assistant turn defers a discovered defect with phrases like `scope 밖`, `별도 PR`, `out of scope`, `separate PR` and lacks an `UNFIXED:` block. Forces the model to either fix the defect now or properly classify it. Escape hatch: include `[allow-defer]` in your message to pass through. |
 
 Multiple commands under the same `matcher` run together; if any exits
 with code 2, Claude is forced to continue with the hook's stderr
 reinjected as a new user message.
+
+### Hook merge
+
+A hook marked *managed* above lives in `hooks.partial.json` and is
+installed by `install.sh`. Add one there, with `{{REPO}}` standing in
+for the clone path:
+
+```json
+{
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        { "type": "command", "command": "{{REPO}}/hooks/no-deferral-guard.py" }
+      ]
+    }
+  ]
+}
+```
+
+The merge is not `.[0] * .[1]` — that replaces arrays, so it would
+delete hooks you registered yourself. Instead `install.sh` owns exactly
+the entries whose command basename appears in `hooks.partial.json`: it
+drops those (which is how a re-run from a moved clone rewrites the path
+instead of duplicating the entry), then re-adds them, appending to the
+group with the same `matcher` if one exists. Every other entry in your
+`hooks` is left alone.
+
+The consequence of that ownership rule: a managed hook script is placed
+where `hooks.partial.json` says, so registering it yourself under a
+different event or path will be undone on the next install. An unmanaged
+hook — `no-deferral-guard.py` today — is yours to register in
+`~/.claude/settings.json` by hand and `install.sh` never touches it.
