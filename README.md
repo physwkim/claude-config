@@ -108,8 +108,8 @@ To add a setting to the repo-managed set, edit `settings.partial.json`
 and re-run `./install.sh` (or `git pull` on other machines and re-run).
 Currently managed: `permissions.defaultMode`, `permissions.allow`,
 `enabledPlugins`, `effortLevel`, `autoUpdatesChannel`,
-`skipDangerousModePermissionPrompt`, `autoCompactEnabled`,
-`autoCompactWindow`, `attribution` (empty `commit`/`pr` strings hide the
+`skipDangerousModePermissionPrompt`, `disableRemoteControl`,
+`autoCompactEnabled`, `autoCompactWindow`, `attribution` (empty `commit`/`pr` strings hide the
 Co-authored-by / "Generated with Claude Code" trailers on commits and
 PRs).
 
