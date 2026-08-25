@@ -29,6 +29,31 @@ Currently tracks:
   the options Claude Code accepts only in `~/.claude.json` and not in
   `settings.json`. Merged the same way, under Claude's own write lock.
 
+## Before you run install.sh
+
+This is one person's config, not a starter template. `install.sh` writes
+to three files outside the repo — `~/.claude/CLAUDE.md` (replaced by a
+symlink to this repo), `~/.claude/settings.json` and `~/.claude.json` —
+and the settings it merges deliberately loosen Claude Code's defaults:
+
+- `permissions.defaultMode: "auto"` and
+  `skipDangerousModePermissionPrompt: true` — fewer permission prompts,
+  and no confirmation prompt when starting with
+  `--dangerously-skip-permissions`;
+- `permissions.allow` runs `git add`, `git commit`, `git push`,
+  `cargo check` and `cargo generate-lockfile` without asking. It is an
+  array, so on merge it **replaces** your allowlist instead of adding to
+  it;
+- `attribution` blanks the commit and PR trailers;
+- `CLAUDE.md` is a strict working contract — mandated report format,
+  banned phrases, English/Korean only — and it applies to every project
+  on the machine, not just this one.
+
+Read `settings.partial.json` and `CLAUDE.md` first and drop what you do
+not want. Every file is copied to `<file>.bak.<timestamp>` before a
+change, so a run is recoverable; note that after install, edits to
+`~/.claude/CLAUDE.md` land in this repo through the symlink.
+
 ## Install on a new machine
 
 ```sh
