@@ -70,6 +70,36 @@ session-start reminder. SKIP per those rules for targeted
 single-function reviews, intentional-redesign ports, or
 already-run-this-session-without-new-external-findings.
 
+# A review ledger holds only unfixed work
+
+Default for every `.md` that tracks findings — parity ledgers, review
+docs, audit inventories, fix lists.
+
+**When a row is fixed, delete the row.** Not a verdict paragraph, not a
+`FIXED` token, not a strikethrough, not a past-tense re-verification
+write-up, not a "closed by `<sha>`" line. Cut it out. What is left in
+the file is exactly what is still open, so the file *is* the queue and
+its length *is* the count. The fix itself is the record: it lives in the
+commit that made it, which names the row id in its headline.
+
+Why this is the default and not a preference: a ledger that accretes
+verdicts stops being readable as a work list. A closed row with a
+verdict paragraph is textually indistinguishable from an open one to
+every counting instrument, so the open count drifts upward, panels
+re-adjudicate settled rows, and each round pays to rediscover what the
+last round already decided.
+
+**Do not spend tokens on ledger bookkeeping.** No new instrument doc, no
+evidence file, no citation/span/hash sweep, no census, unless the user
+asks for it by name. Those produce leads, not fixes, and a lead costs
+the same context as the fix it displaces. Functional work first; if an
+investigation is genuinely required to make a fix, do it inline and
+leave nothing behind but the fix.
+
+Two things survive deletion: a row blocked on a user decision (keep it,
+with the question), and prose that exists *to* document an error and
+must quote the wrong thing verbatim.
+
 # Reference source locations
 
 Upstream C/C++ originals for the `epics-rs` parity audits. Machine-local
