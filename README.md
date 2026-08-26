@@ -10,10 +10,9 @@ Currently tracks:
 - `commands/*.md` — Claude slash commands installed at
   `~/.claude/commands/<name>.md`. Each file becomes a `/<name>`
   slash command.
-- `audit/` — long-form methodology playbooks referenced from the
-  slash commands (e.g. `audit/c-parity-audit.md`). Not symlinked
-  anywhere; the slash commands cite the in-repo path so the docs
-  stay versioned with their commands.
+- `audit/` — long-form methodology notes kept with the config
+  rather than inside any one project
+  (`audit/port-translation-lessons.md`). Not symlinked anywhere.
 - `hooks/` — executable hook scripts referenced by absolute path
   from `~/.claude/settings.json`. Not symlinked; the settings entry
   points directly at the in-repo file so updates land via `git pull`.
@@ -163,12 +162,6 @@ Likely future additions, not included yet:
 
 - `keybindings.json`
 - `agents/*.md` (subagent definitions)
-
-## Slash commands
-
-| Command | Purpose | Backing playbook |
-|---|---|---|
-| `/parity-audit` | Codex-style multi-agent audit of a Rust port against an upstream C/C++ reference. Spawns 3–5 read-only sub-agents in parallel, each enumerating one slice of the C surface first and mapping to Rust to find divergences. Produces a permanent inventory doc; commits doc-only before any fixes. | [`audit/c-parity-audit.md`](audit/c-parity-audit.md) |
 
 ## Hooks
 

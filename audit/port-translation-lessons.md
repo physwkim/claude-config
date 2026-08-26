@@ -1,9 +1,7 @@
 # Port translation lessons
 
-Complements `c-parity-audit.md`. That doc tells you how to *run* a
-parity audit; this one captures what the audit cannot do, how to
-classify what it finds, and what would prevent the next cycle of
-findings. Distilled from the 2026-05-18 `epics-pva-rs` ↔ `pvxs`
+What a C-to-Rust port audit cannot do, how to classify what it
+finds, and what would prevent the next cycle of findings. Distilled from the 2026-05-18 `epics-pva-rs` ↔ `pvxs`
 audit (28 findings, mix of High/Medium).
 
 ## Scope
@@ -58,7 +56,7 @@ reference-independent, 10 reference-faithful, 5 interop-contract,
 
 ## Lesson 2 — "Incomplete feature" is the wrong frame
 
-Most parity-audit findings are not "feature not yet implemented";
+Most port-parity findings are not "feature not yet implemented";
 they are "feature is wired up and silently does the wrong thing".
 Distinguish:
 
