@@ -54,51 +54,34 @@ passing case in the report below — keep only lines carrying a fact
 the user does not already have (a failure, an UNFIXED item, a number
 they asked for).
 
-# Auto-invoke /parity-audit
+# No rows, no ledgers
 
-If the cwd has a `doc/c-parity-review-*.md` or `parity-review/`
-inventory artefact AND the user's current ask is review-shaped
-(broad sweep: "review", "audit", "find bugs", "더 이상 에러 없는지",
-"추가 버그", "parity check"), invoke the `/parity-audit` skill
-*without first asking* — the inventory's existence is strong
-evidence the playbook is in active use, and asking adds round-trip
-cost. The skill itself prompts for the missing paths if needed.
+**Do not use "rows" as a unit of work, and do not keep a ledger.** No
+parity ledger, review doc, audit inventory, fix list, open-item table,
+instrument doc, evidence file, citation/span/hash sweep or census —
+not new ones, and not updates to existing ones, unless the user asks
+for one by name.
 
-The skill is in available-skills as `parity-audit`; its frontmatter
-TRIGGER / SKIP rules are authoritative, this is just the
-session-start reminder. SKIP per those rules for targeted
-single-function reviews, intentional-redesign ports, or
-already-run-this-session-without-new-external-findings.
+Why: a row is a pointer into a markdown file, so the moment work is
+tracked as rows, attention goes to maintaining the markdown instead of
+to the code. Every round then pays to re-read, re-count and
+re-adjudicate the file, and the file's own drift becomes a second
+source of bugs — rows that read open after the fix landed, rows that
+name a file two panels both then start.
 
-# A review ledger holds only unfixed work
+The unit of work is **the code fix**, addressed by the C source file it
+belongs to (see [Parallel panels: one owner per C source file]). The
+record of a fix is **the commit that made it**: the headline names the
+function or symbol touched, the body carries the reason. Nothing else
+needs to exist for the work to be findable later.
 
-Default for every `.md` that tracks findings — parity ledgers, review
-docs, audit inventories, fix lists.
+If a finding cannot be acted on yet, say so in the reply to the user
+and carry it in the conversation — not in a file. If an investigation
+is genuinely required to make a fix, do it inline and leave nothing
+behind but the fix.
 
-**When a row is fixed, delete the row.** Not a verdict paragraph, not a
-`FIXED` token, not a strikethrough, not a past-tense re-verification
-write-up, not a "closed by `<sha>`" line. Cut it out. What is left in
-the file is exactly what is still open, so the file *is* the queue and
-its length *is* the count. The fix itself is the record: it lives in the
-commit that made it, which names the row id in its headline.
-
-Why this is the default and not a preference: a ledger that accretes
-verdicts stops being readable as a work list. A closed row with a
-verdict paragraph is textually indistinguishable from an open one to
-every counting instrument, so the open count drifts upward, panels
-re-adjudicate settled rows, and each round pays to rediscover what the
-last round already decided.
-
-**Do not spend tokens on ledger bookkeeping.** No new instrument doc, no
-evidence file, no citation/span/hash sweep, no census, unless the user
-asks for it by name. Those produce leads, not fixes, and a lead costs
-the same context as the fix it displaces. Functional work first; if an
-investigation is genuinely required to make a fix, do it inline and
-leave nothing behind but the fix.
-
-Two things survive deletion: a row blocked on a user decision (keep it,
-with the question), and prose that exists *to* document an error and
-must quote the wrong thing verbatim.
+The one exception: prose that exists *to* document an error and must
+quote the wrong thing verbatim.
 
 # Reference source locations
 
@@ -505,8 +488,8 @@ Required:
    single owner API.
 4. If a resource is classified as failed or lost, prevent normal
    destructor behavior from retrying the same operation.
-5. If external truth changed first (file deleted, row committed, name
-   renamed), synchronize in-memory owner state deterministically;
+5. If external truth changed first (file deleted, database row committed,
+   name renamed), synchronize in-memory owner state deterministically;
    best-effort eviction is not enough.
 
 Banned shortcuts:
@@ -518,6 +501,48 @@ Banned shortcuts:
   alive because a lock was busy
 - Treating flush success as durable success when bytes may be written to
   a deleted or reader-invisible file
+
+# Parallel panels: one owner per C source file
+
+When work is fanned out to several panels/agents at once, cut the
+assignment by **C source file**, not by review row or symptom. One C file
+has exactly one owner for the whole round.
+
+Why this and not rows: rows are cut by symptom, so two of them routinely
+name the same C file — "iocsh commands absent" and a
+`dbStaticIocRegister.c` sweep are different rows over one file, and two
+panels will both start it. Rows overlap; files do not. And panels cannot
+see each other by construction: each sits in its own worktree on its own
+branch, so a panel's `rg` proving a symbol "absent" is only proof about
+*its* tree. Deduplication is therefore structurally the orchestrator's
+job and nobody else's — a panel that reports a defect open is not wrong
+when another branch already fixed it.
+
+Required before every assignment:
+
+1. Re-read each panel's tip from its **worktree HEAD**
+   (`git -C <worktree> rev-parse HEAD`). `list_panels`' `branch` field is
+   not authoritative and has been wrong for three panels at once.
+2. Resolve the target symbol against **the union of all live tips**
+   (`git grep -q <symbol> <tip>`, once per tip) — never against a
+   merged-tree snapshot. A merged tree is valid only at the instant it
+   was built; panels commit continuously, so a stale tree reports
+   finished work as missing.
+3. Name the owning C file in the brief, and name the files that are
+   *not* theirs, so the panel can refuse work that crosses the line.
+
+Banned:
+
+- Assigning work as rows at all — brief a panel with the C source file
+  it owns and the fix expected, never a row id or a ledger reference.
+- Assigning from a panel's own "this is still open" report without the
+  tip-union check.
+- Handing out a list that spans several C files.
+- Measuring absence on a merged tree older than the newest tip.
+
+When two panels have already collided, do not split the file: give it to
+whichever panel has read the C originals, and move the other panel to a
+different file. Discarding the reading is the larger waste.
 
 # Before starting non-trivial work
 
