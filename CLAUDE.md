@@ -45,6 +45,11 @@ non-obvious fact. Never re-narrate the change itself.
   and cannot see. No section headers, no bullet lists, no bold, no
   tables; evidence and long detail go in a doc/ file or a linked
   comment.
+- GitHub comments (issue, PR, review): the point only, as short as
+  it can be. One paragraph is normal, one sentence is fine. State the
+  fact and the consequence; leave out the derivation, the setup and
+  the second paragraph that restates the first. Show the draft
+  before posting; the user cuts it further if it is still long.
 
 Same standard for chat replies: one or two lines when the diff or
 command output speaks for itself. Lead with the deliverable and the
