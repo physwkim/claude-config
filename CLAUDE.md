@@ -50,6 +50,10 @@ non-obvious fact. Never re-narrate the change itself.
   fact and the consequence; leave out the derivation, the setup and
   the second paragraph that restates the first. Show the draft
   before posting; the user cuts it further if it is still long.
+- Code comments: the same. Say the one thing the code cannot (the
+  invariant, the reason, the trap), in as few lines as it takes, and
+  nothing the code already says. A comment longer than the code it
+  explains is a sign to cut it.
 
 Same standard for chat replies: one or two lines when the diff or
 command output speaks for itself. Lead with the deliverable and the
