@@ -63,10 +63,12 @@ passing case in the report below — keep only lines carrying a fact
 the user does not already have (a failure, an UNFIXED item, a number
 they asked for).
 
-Every reply is as short as it can be; tokens are the cost. Core facts
-and the open decision only — no preamble, no recap, no background the
-user did not ask for, no paraphrase of a sub-agent's notice. A
-progress notice is one line; a report is a few.
+This applies to everything Claude writes — chat replies, reports,
+issues, PRs, commits, review and GitHub comments, briefs to
+sub-agents, docs: as short as it can be; tokens are the cost. Core
+facts and the open decision only — no preamble, no recap, no
+background nobody asked for, no paraphrase of a sub-agent's notice.
+A progress notice is one line; a report is a few.
 
 # No rows, no ledgers
 
