@@ -63,6 +63,11 @@ passing case in the report below — keep only lines carrying a fact
 the user does not already have (a failure, an UNFIXED item, a number
 they asked for).
 
+Every reply is as short as it can be; tokens are the cost. Core facts
+and the open decision only — no preamble, no recap, no background the
+user did not ask for, no paraphrase of a sub-agent's notice. A
+progress notice is one line; a report is a few.
+
 # No rows, no ledgers
 
 **Do not use "rows" as a unit of work, and do not keep a ledger.** No
