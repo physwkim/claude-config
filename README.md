@@ -10,6 +10,9 @@ Currently tracks:
 - `commands/*.md` — Claude slash commands installed at
   `~/.claude/commands/<name>.md`. Each file becomes a `/<name>`
   slash command.
+- `caucus/settings.toml` — global caucus settings, symlinked to
+  `~/.caucus/settings.toml` when `caucus` is in PATH. caucus reads it
+  only at startup.
 - `audit/` — long-form methodology notes kept with the config
   rather than inside any one project
   (`audit/port-translation-lessons.md`). Not symlinked anywhere.

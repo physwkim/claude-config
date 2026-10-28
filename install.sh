@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install / re-install personal AI CLI config from this repo into the
-# config dirs of any installed agent CLIs (claude, codex). Idempotent:
+# config dirs of any installed agent CLIs (claude, codex) and caucus. Idempotent:
 # existing files are backed up with a timestamp suffix before being
 # replaced with a symlink.
 #
@@ -108,6 +108,14 @@ if command -v claude >/dev/null 2>&1 && [[ -d "$repo_dir/commands" ]]; then
     name="$(basename "$src")"
     link_one "$src" "$HOME/.claude/commands/$name" "claude:commands/$name"
   done
+fi
+
+# caucus: global settings.toml. A symlink, like CLAUDE.md, because
+# caucus only reads it; per-machine overrides belong in the project
+# layer, <repo>/.caucus/settings.toml.
+if command -v caucus >/dev/null 2>&1; then
+  mkdir -p "$HOME/.caucus"
+  link_one "$repo_dir/caucus/settings.toml" "$HOME/.caucus/settings.toml" "caucus:settings.toml"
 fi
 
 # Claude-only: merge repo-managed settings into ~/.claude/settings.json.

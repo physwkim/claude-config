@@ -1,0 +1,5 @@
+# Symlinked to ~/.caucus/settings.toml by install.sh. Machine- or
+# project-specific overrides go in <repo>/.caucus/settings.toml.
+[settings]
+# Interim notice for a worker still mid-turn; 3600 is caucus's cap.
+round_fallback_secs = 3600
