@@ -60,6 +60,8 @@ link_one() {
   local src="$1"
   local dst="$2"
   local label="$3"
+  # Where an existing $dst is moved: beside it unless the caller says otherwise.
+  local bak="${4:-$dst.bak.$ts}"
 
   if [[ ! -e "$src" ]]; then
     echo "skip $label — source $src not in repo"
@@ -74,7 +76,7 @@ link_one() {
 
   # Existing file or wrong-target symlink → back up first.
   if [[ -e "$dst" || -L "$dst" ]]; then
-    local bak="$dst.bak.$ts"
+    mkdir -p "$(dirname "$bak")"
     mv "$dst" "$bak"
     echo "back $label -> $bak"
   fi
@@ -107,6 +109,21 @@ if command -v claude >/dev/null 2>&1 && [[ -d "$repo_dir/commands" ]]; then
     [[ -e "$src" ]] || continue
     name="$(basename "$src")"
     link_one "$src" "$HOME/.claude/commands/$name" "claude:commands/$name"
+  done
+fi
+
+# Claude-only: one symlink per skills/<name>/ under ~/.claude/skills/,
+# so skills installed by other means stay. An existing skill is backed
+# up outside ~/.claude/skills: Claude loads every directory there, so a
+# backup beside it would load as a second copy of the skill.
+if command -v claude >/dev/null 2>&1 && [[ -d "$repo_dir/skills" ]]; then
+  mkdir -p "$HOME/.claude/skills"
+  for src in "$repo_dir"/skills/*/; do
+    src="${src%/}"
+    [[ -f "$src/SKILL.md" ]] || continue
+    name="$(basename "$src")"
+    link_one "$src" "$HOME/.claude/skills/$name" "claude:skills/$name" \
+      "$HOME/.claude/skills.bak.$ts/$name"
   done
 fi
 

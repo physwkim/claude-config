@@ -10,6 +10,10 @@ Currently tracks:
 - `commands/*.md` — Claude slash commands installed at
   `~/.claude/commands/<name>.md`. Each file becomes a `/<name>`
   slash command.
+- `skills/<name>/` — Claude skills (a `SKILL.md` plus its scripts),
+  each symlinked to `~/.claude/skills/<name>`. Skills not in this repo
+  are left alone; an existing skill of the same name is moved to
+  `~/.claude/skills.bak.<timestamp>/<name>` first.
 - `caucus/settings.toml` — global caucus settings, symlinked to
   `~/.caucus/settings.toml` when `caucus` is in PATH. caucus reads it
   only at startup.
