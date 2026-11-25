@@ -15,9 +15,10 @@ Currently tracks:
   are left alone; an existing skill of the same name is moved to
   `~/.claude/skills.bak.<timestamp>/<name>` first. A link into this
   repo at a skill or command it no longer has is deleted.
-  `benchmark-checklist`, `blast-radius`, `hillclimb`, `trace-forensics`,
-  `statechart` and the two `*-formal-verification-skill` skills are
-  adapted from [pstack](https://github.com/cursor/plugins/tree/41e400932eca14f289e7db717a70455256b6d388/pstack)
+  `benchmark-checklist`, `blast-radius`, `correct`, `hillclimb`,
+  `trace-forensics`, `statechart`, the two
+  `*-formal-verification-skill` skills and the three `principle-*`
+  skills are adapted from [pstack](https://github.com/cursor/plugins/tree/41e400932eca14f289e7db717a70455256b6d388/pstack)
   (MIT, `third_party/pstack/LICENSE`); `statechart` runs on Node
   22.18+, Bun or Deno, with `TLA2TOOLS`/`JAVA` set or mise on PATH.
 - `caucus/settings.toml` — global caucus settings, symlinked to
