@@ -53,9 +53,11 @@ and the settings it merges deliberately loosen Claude Code's defaults:
   `skipDangerousModePermissionPrompt: true` — fewer permission prompts,
   and no confirmation prompt when starting with
   `--dangerously-skip-permissions`;
-- `permissions.allow` runs `git add`, `git commit`, `git push`,
-  `cargo check` and `cargo generate-lockfile` without asking. It is
-  added to your allowlist, and the entries you had stay;
+- `permissions.allow` runs `git add`, `git commit`, `git push`, `git
+  pull`, any `cargo` and `python3` command, read-only file and git
+  commands, and `rm`/`mkdir` under `/tmp/claude-<uid>/` and
+  `~/work/_tgt/` without asking. It is added to your allowlist, and the
+  entries you had stay;
 - `attribution` blanks the commit and PR trailers;
 - `CLAUDE.md` is a strict working contract — mandated report format,
   banned phrases, English/Korean only — and it applies to every project
