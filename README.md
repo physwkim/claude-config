@@ -65,7 +65,8 @@ and the settings it merges deliberately loosen Claude Code's defaults:
 
 Read `settings.partial.json` and `CLAUDE.md` first and drop what you do
 not want. Every file is copied to `<file>.bak.<timestamp>` before a
-change, so a run is recoverable; note that after install, edits to
+change (`.1`, `.2`, … appended if a run in the same second took that
+name), so a run is recoverable; note that after install, edits to
 `~/.claude/CLAUDE.md` land in this repo through the symlink.
 
 ## Install on a new machine

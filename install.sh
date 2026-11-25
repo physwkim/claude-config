@@ -80,6 +80,15 @@ targets=(
   "codex  $HOME/.codex  AGENTS.md"
 )
 
+# $1, or $1.1, $1.2, ... if taken. $ts has one-second resolution, so a
+# second run in the same second would otherwise mv a backup into the
+# directory an earlier backup link points at, or cp over that backup.
+free_path() {
+  local p="$1" i=0
+  while [[ -e "$p" || -L "$p" ]]; do p="$1.$((++i))"; done
+  printf '%s\n' "$p"
+}
+
 link_one() {
   local src="$1"
   local dst="$2"
@@ -101,6 +110,7 @@ link_one() {
   # Existing file or wrong-target symlink → back up first.
   if [[ -e "$dst" || -L "$dst" ]]; then
     mkdir -p "$(dirname "$bak")"
+    bak="$(free_path "$bak")"
     mv "$dst" "$bak"
     echo "back $label -> $bak"
   fi
@@ -223,7 +233,7 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
       if jq --argjson part "$part_json" --argjson repo "$hooks_json" \
               "$merge_def$hook_merge_prog" "$settings" > "$tmp" \
          && ! diff -q <(jq -S . "$settings") <(jq -S . "$tmp") >/dev/null 2>&1; then
-        bak="$settings.bak.$ts"
+        bak="$(free_path "$settings.bak.$ts")"
         cp "$settings" "$bak"
         mv "$tmp" "$settings"
         echo "merge claude:settings.json <- settings.partial.json (backup -> $bak)"
@@ -268,7 +278,7 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.jso
     if jq --argjson part "$part_json" "$merge_def merge(.; \$part)" "$gconfig" > "$tmp" \
        && [[ -s "$tmp" ]] \
        && ! diff -q <(jq -S . "$gconfig") <(jq -S . "$tmp") >/dev/null 2>&1; then
-      bak="$gconfig.bak.$ts"
+      bak="$(free_path "$gconfig.bak.$ts")"
       cp "$gconfig" "$bak"
       mv "$tmp" "$gconfig"
       echo "merge claude:.claude.json <- claude-json.partial.json (backup -> $bak)"
