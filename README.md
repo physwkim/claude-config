@@ -35,9 +35,9 @@ Currently tracks:
   `~/.claude/settings.json` (jq), so machine-specific entries survive.
 - `hooks.partial.json` — repo-managed hook registrations, merged into
   the same file but entry by entry rather than by the generic key
-  merge, so hooks you registered yourself are never dropped. In every
-  partial, `{{REPO}}`, `{{HOME}}` and `{{UID}}` are replaced at install
-  time with this clone's absolute path, your home folder and your user ID.
+  merge, so hooks you registered yourself are never dropped. `{{REPO}}`
+  in a command is replaced with this clone's absolute path at install
+  time.
 - `claude-json.partial.json` — repo-managed **global config** keys, for
   the options Claude Code accepts only in `~/.claude.json` and not in
   `settings.json`. Merged the same way, under Claude's own write lock.
