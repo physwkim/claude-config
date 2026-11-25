@@ -11,11 +11,24 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "$0")" && pwd -P)"
 ts="$(date +%Y%m%d-%H%M%S)"
 
+# The generic merge of a repo partial into a user file. Objects merge
+# key by key and the repo wins a scalar, but an array keeps the user's
+# entries in order and appends the repo's missing ones: a merge never
+# removes an entry the user had.
+merge_def='
+def merge($a; $b):
+  if ($a | type) == "object" and ($b | type) == "object" then
+    reduce ($b | keys_unsorted[]) as $k ($a; .[$k] = merge($a[$k]; $b[$k]))
+  elif ($a | type) == "array" and ($b | type) == "array" then
+    $a + ($b - $a)
+  else $b end;
+'
+
 # jq program for the settings merge. Slurped inputs: [0] the user's
 # settings.json, [1] settings.partial.json. $repo carries this repo's
 # hook entries with paths already resolved (event -> [group]).
 #
-# `.[0] * .[1]` is the generic repo-keys-win merge. The hooks pass then
+# merge is the generic repo-keys-win merge. The hooks pass then
 # runs on its result and is deliberately NOT that merge: it drops only
 # the entries this repo owns — command basename listed in $repo, which
 # is what makes a re-run from a moved clone rewrite the path instead of
@@ -43,7 +56,7 @@ def add_groups($repo):
         else .[$e.key] = ($cur | .[$i].hooks += ($g.hooks - .[$i].hooks))
         end));
 [$repo | to_entries[] | .value[] | .hooks[]? | .command | split("/") | last] as $names
-| (.[0] * .[1]) as $merged
+| merge(.[0]; .[1]) as $merged
 | (($merged.hooks // {}) | strip_managed($names) | add_groups($repo)) as $h
 | if ($h | length) > 0 then $merged | .hooks = $h else $merged end
 '
@@ -165,9 +178,9 @@ fi
 # them; everything else in the user's file is preserved.
 #
 # Hooks are merged separately, entry by entry, and live in their own
-# hooks.partial.json — NOT in settings.partial.json. `.[0] * .[1]`
-# replaces arrays wholesale, so a `hooks` key in the generic partial
-# would delete every hook the user already had for that event. The
+# hooks.partial.json — NOT in settings.partial.json. The generic merge
+# would keep a hook's old path beside the new one after a moved clone,
+# since an array union cannot tell the two are one entry. The
 # invariant here is that a merge never removes a hook the user had:
 # install.sh owns only the entries whose command basename appears in
 # hooks.partial.json, rewriting their path to this clone, and leaves
@@ -198,7 +211,7 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
       # Compare canonicalised JSON, not bytes: Claude Code rewrites these
       # files itself, and jq's formatting of identical data would
       # otherwise look like a change and trigger a needless rewrite.
-      if jq -s --argjson repo "$hooks_json" "$hook_merge_prog" \
+      if jq -s --argjson repo "$hooks_json" "$merge_def$hook_merge_prog" \
               "$settings" "$repo_dir/settings.partial.json" > "$tmp" \
          && ! diff -q <(jq -S . "$settings") <(jq -S . "$tmp") >/dev/null 2>&1; then
         bak="$settings.bak.$ts"
@@ -241,7 +254,7 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.jso
     trap 'rmdir "$gclock" 2>/dev/null || true' EXIT
     # Temp file lives beside the target so the mv is atomic (same fs).
     tmp="$(mktemp "$gconfig.tmp.XXXXXX")"
-    if jq -s '.[0] * .[1]' "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
+    if jq -s "$merge_def merge(.[0]; .[1])" "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
        && [[ -s "$tmp" ]] \
        && ! diff -q <(jq -S . "$gconfig") <(jq -S . "$tmp") >/dev/null 2>&1; then
       bak="$gconfig.bak.$ts"

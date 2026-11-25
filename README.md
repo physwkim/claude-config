@@ -54,9 +54,8 @@ and the settings it merges deliberately loosen Claude Code's defaults:
   and no confirmation prompt when starting with
   `--dangerously-skip-permissions`;
 - `permissions.allow` runs `git add`, `git commit`, `git push`,
-  `cargo check` and `cargo generate-lockfile` without asking. It is an
-  array, so on merge it **replaces** your allowlist instead of adding to
-  it;
+  `cargo check` and `cargo generate-lockfile` without asking. It is
+  added to your allowlist, and the entries you had stay;
 - `attribution` blanks the commit and PR trailers;
 - `CLAUDE.md` is a strict working contract — mandated report format,
   banned phrases, English/Korean only — and it applies to every project
@@ -108,9 +107,11 @@ so any edit Claude Code or you make goes through git directly.
 `~/.claude/settings.json` is **not** symlinked, because it mixes
 repo-portable keys with machine-specific ones (tool paths, plugins,
 external hook commands). Instead, `install.sh` merges
-`settings.partial.json` into it with `jq -s '.[0] * .[1]'`:
+`settings.partial.json` into it with jq, objects key by key:
 
-- repo keys win on conflict (re-running enforces them);
+- repo keys win a scalar conflict (re-running enforces them);
+- an array keeps your entries in order and appends the repo's missing
+  ones, so a merge never removes an entry you had;
 - every other key in the user's file is preserved;
 - the file is backed up to `settings.json.bak.<timestamp>` before any
   change, and only when the merge actually changes something;
@@ -126,14 +127,14 @@ Currently managed: `permissions.defaultMode`, `permissions.allow`,
 Co-authored-by / "Generated with Claude Code" trailers on commits and
 PRs).
 
-`permissions.allow` is an array, so the repo's list **replaces** any
-machine-local allow entries on merge — the repo owns the allowlist.
+`permissions.allow` is an array, so the repo's entries are added to the
+machine-local ones. The flip side: an entry deleted from the repo stays
+on every machine that installed it until removed there by hand.
 `enabledPlugins` is an object, so it merges: repo plugins are added and
 machine-local plugins are kept.
 
-Note: array-valued keys are **replaced**, not appended, by `*`. That is
-why `hooks` is not in this file — it would delete every hook you had
-registered for that event. See [Hook merge](#hook-merge).
+`hooks` is not in this file: after a moved clone, the array merge would
+keep a hook's old path beside the new one. See [Hook merge](#hook-merge).
 
 ## Global config merge
 
@@ -145,7 +146,7 @@ override. A key in the first list but not the second can *only* be set in
 `~/.claude.json` — putting it in `settings.json` silently does nothing.
 
 `claude-json.partial.json` holds those keys, and `install.sh` merges it
-into `~/.claude.json` with the same `jq -s '.[0] * .[1]'` + backup dance
+into `~/.claude.json` with the same merge and backup dance
 as settings.json, plus three extra guards, because that file also holds
 auth, onboarding and per-project state:
 
@@ -207,8 +208,8 @@ for the clone path:
 }
 ```
 
-The merge is not `.[0] * .[1]` — that replaces arrays, so it would
-delete hooks you registered yourself. Instead `install.sh` owns exactly
+The merge is not the settings array merge, which would keep the old
+path beside the new one after a moved clone. Instead `install.sh` owns exactly
 the entries whose command basename appears in `hooks.partial.json`: it
 drops those (which is how a re-run from a moved clone rewrites the path
 instead of duplicating the entry), then re-adds them, appending to the
