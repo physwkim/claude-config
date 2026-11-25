@@ -1,37 +1,46 @@
-"""Compare plot-area crops of two backends.
+"""Compare two renderings of the same scenarios.
 
-usage: paritydiff.py OUTDIR BASELINE TARGET SCENARIO...
-Prints the share of pixels whose max channel difference exceeds a threshold
-and writes, in OUTDIR:
+usage: paritydiff.py [--threshold N] OUTDIR BASE TARGET SCENARIO...
+A side is LABEL, read as OUTDIR/SCENARIO.LABEL.png, or DIR/LABEL, read as
+DIR/SCENARIO.LABEL.png (the same renderer from an earlier run).
+Prints the share of pixels whose max channel difference exceeds N
+(default 48) and writes, in OUTDIR:
 - SCENARIO.diff.png: gray baseline, differing pixels in red
 - SCENARIO.trio.png: baseline | target | diff side by side, for viewing
 """
 
+import os
 import sys
 
 import numpy
 from PIL import Image
 
-THRESHOLD = 48  # per-channel difference ignored below this (antialiasing)
 
-
-def load(path):
+def load(outdir, side, name):
+    folder, label = os.path.split(side)
+    path = os.path.join(folder or outdir, f"{name}.{label}.png")
     return numpy.asarray(Image.open(path).convert("RGB"), dtype=numpy.int16)
 
 
 def main():
-    outdir, base, target = sys.argv[1:4]
-    for name in sys.argv[4:]:
+    args = sys.argv[1:]
+    threshold = 48  # ignores antialiasing differences between two renderers
+    if args[:1] == ["--threshold"]:
+        threshold = int(args[1])
+        args = args[2:]
+    outdir, base, target = args[:3]
+    os.makedirs(outdir, exist_ok=True)
+    for name in args[3:]:
         try:
-            a = load(f"{outdir}/{name}.{base}.png")
-            b = load(f"{outdir}/{name}.{target}.png")
+            a = load(outdir, base, name)
+            b = load(outdir, target, name)
         except FileNotFoundError as e:
             print(f"{name:24s} missing {e.filename}")
             continue
         if a.shape != b.shape:
             print(f"{name:24s} size mismatch {a.shape} vs {b.shape}")
             continue
-        diff = numpy.abs(a - b).max(axis=2) > THRESHOLD
+        diff = numpy.abs(a - b).max(axis=2) > threshold
         share = 100.0 * diff.mean()
         gray = a.mean(axis=2).astype(numpy.uint8)
         out = numpy.dstack([gray, gray, gray]) // 2 + 64
