@@ -24,9 +24,9 @@ def merge($a; $b):
   else $b end;
 '
 
-# jq program for the settings merge. Slurped inputs: [0] the user's
-# settings.json, [1] settings.partial.json. $repo carries this repo's
-# hook entries with paths already resolved (event -> [group]).
+# jq program for the settings merge. Input: the user's settings.json.
+# $part is settings.partial.json and $repo this repo's hook entries
+# (event -> [group]), both already resolved.
 #
 # merge is the generic repo-keys-win merge. The hooks pass then
 # runs on its result and is deliberately NOT that merge: it drops only
@@ -56,10 +56,21 @@ def add_groups($repo):
         else .[$e.key] = ($cur | .[$i].hooks += ($g.hooks - .[$i].hooks))
         end));
 [$repo | to_entries[] | .value[] | .hooks[]? | .command | split("/") | last] as $names
-| merge(.[0]; .[1]) as $merged
+| merge(.; $part) as $merged
 | (($merged.hooks // {}) | strip_managed($names) | add_groups($repo)) as $h
 | if ($h | length) > 0 then $merged | .hooks = $h else $merged end
 '
+
+# A repo partial with {{REPO}}, {{HOME}} and {{UID}} resolved for this
+# machine, so the repo names no clone path, user or home. Done in jq,
+# not sed, so a path with shell/JSON metacharacters survives.
+resolve() {
+  jq -c --arg repo "$repo_dir" --arg home "$HOME" --arg uid "$(id -u)" \
+    'walk(if type == "string"
+          then gsub("\\{\\{REPO\\}\\}"; $repo) | gsub("\\{\\{HOME\\}\\}"; $home)
+             | gsub("\\{\\{UID\\}\\}"; $uid)
+          else . end)' "$1"
+}
 
 # Map: <cli-binary> <config-dir> <dest-filename>
 # CLAUDE.md from this repo is symlinked to each CLI's global
@@ -194,14 +205,12 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
     [[ -f "$settings" ]] || echo '{}' > "$settings"
     if ! jq empty "$settings" 2>/dev/null; then
       echo "skip claude:settings.json — $settings is not valid JSON, left untouched"
+    elif ! part_json="$(resolve "$repo_dir/settings.partial.json" 2>/dev/null)"; then
+      echo "skip claude:settings.json — settings.partial.json unreadable, left untouched"
     else
-      # Repo hook entries with {{REPO}} resolved to this clone. Done in
-      # jq, not sed, so a path with shell/JSON metacharacters survives.
       hooks_json='{}'
       if [[ -f "$repo_dir/hooks.partial.json" ]]; then
-        if ! hooks_json="$(jq -c --arg repo "$repo_dir" \
-             'walk(if type == "string" then gsub("\\{\\{REPO\\}\\}"; $repo) else . end)' \
-             "$repo_dir/hooks.partial.json" 2>/dev/null)"; then
+        if ! hooks_json="$(resolve "$repo_dir/hooks.partial.json" 2>/dev/null)"; then
           echo "warn claude:settings.json — hooks.partial.json unreadable, hooks left untouched"
           hooks_json='{}'
         fi
@@ -211,8 +220,8 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/settings.partial.json" 
       # Compare canonicalised JSON, not bytes: Claude Code rewrites these
       # files itself, and jq's formatting of identical data would
       # otherwise look like a change and trigger a needless rewrite.
-      if jq -s --argjson repo "$hooks_json" "$merge_def$hook_merge_prog" \
-              "$settings" "$repo_dir/settings.partial.json" > "$tmp" \
+      if jq --argjson part "$part_json" --argjson repo "$hooks_json" \
+              "$merge_def$hook_merge_prog" "$settings" > "$tmp" \
          && ! diff -q <(jq -S . "$settings") <(jq -S . "$tmp") >/dev/null 2>&1; then
         bak="$settings.bak.$ts"
         cp "$settings" "$bak"
@@ -248,13 +257,15 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.jso
     echo "skip claude:.claude.json — $gconfig not found; run claude once, then re-run"
   elif ! jq empty "$gconfig" 2>/dev/null; then
     echo "skip claude:.claude.json — $gconfig is not valid JSON, left untouched"
+  elif ! part_json="$(resolve "$repo_dir/claude-json.partial.json" 2>/dev/null)"; then
+    echo "skip claude:.claude.json — claude-json.partial.json unreadable, left untouched"
   elif ! mkdir "$gclock" 2>/dev/null; then
     echo "skip claude:.claude.json — write lock held by a running Claude session; re-run in a moment"
   else
     trap 'rmdir "$gclock" 2>/dev/null || true' EXIT
     # Temp file lives beside the target so the mv is atomic (same fs).
     tmp="$(mktemp "$gconfig.tmp.XXXXXX")"
-    if jq -s "$merge_def merge(.[0]; .[1])" "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
+    if jq --argjson part "$part_json" "$merge_def merge(.; \$part)" "$gconfig" > "$tmp" \
        && [[ -s "$tmp" ]] \
        && ! diff -q <(jq -S . "$gconfig") <(jq -S . "$tmp") >/dev/null 2>&1; then
       bak="$gconfig.bak.$ts"
