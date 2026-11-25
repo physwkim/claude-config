@@ -57,7 +57,7 @@
   "skipDangerousModePermissionPrompt": true,
   "disableRemoteControl": true,
   "autoCompactEnabled": true,
-  "autoCompactWindow": 300000,
+  "autoCompactWindow": 200000,
   "attribution": {
     "commit": "",
     "pr": ""
