@@ -95,6 +95,9 @@ A fix can pass every test and look structural (moves timing, adds a cell, rename
 3. **Uniform rule or special-cased boundary?** Prefer one uniform rule even if it needs a semantic change, stated for sign-off (e.g. "an unconsumed pre-pause value coalesces into the during-pause latest on resume; this matches monitor latest-value semantics, and the queue-at-boundary rule it replaces was the source of the recurring edges").
 The patch tell: "moved the collapse to a cleverer point", "preserved both X and Y by timing it right". Then ask which single invariant removes the dual meaning, and fix that.
 
+## Attack the premise
+When two or more fixes that share one premise have failed the same gate, suspect the premise, not the fixes. Before the next fix, write the premise as one sentence and test it with an observation that would come out differently if it were false; look at how the failures are distributed, not only at their size. If one part always lands on the losing side, change what puts it there instead of adding a mechanism that cleans up after it.
+
 # Invariant-driven fixes
 When rounds keep finding adjacent failures after each fix, the code lacks a closed invariant or a single owner of the transition. Before another patch:
 1. Write the invariant as a MUST / MUST NOT rule (e.g. "Only the flush owner may commit registry timestamps"; "Only the loss owner may consume dirty-write loss markers"; "Every dirty writer drop must be classified as clean, deferred, or lost before the writer handle is removed").
