@@ -22,6 +22,11 @@ def merge($a; $b):
   elif ($a | type) == "array" and ($b | type) == "array" then
     $a + ($b - $a)
   else $b end;
+# On the slurped [user file, partial]. Both must be objects, as `*`
+# required: an empty partial slurps to null, which merge would return.
+def merge_files:
+  if map(type) == ["object", "object"] then merge(.[0]; .[1])
+  else error("expected two JSON objects") end;
 '
 
 # jq program for the settings merge. Slurped inputs: [0] the user's
@@ -56,7 +61,7 @@ def add_groups($repo):
         else .[$e.key] = ($cur | .[$i].hooks += ($g.hooks - .[$i].hooks))
         end));
 [$repo | to_entries[] | .value[] | .hooks[]? | .command | split("/") | last] as $names
-| merge(.[0]; .[1]) as $merged
+| merge_files as $merged
 | (($merged.hooks // {}) | strip_managed($names) | add_groups($repo)) as $h
 | if ($h | length) > 0 then $merged | .hooks = $h else $merged end
 '
@@ -264,7 +269,7 @@ if command -v claude >/dev/null 2>&1 && [[ -f "$repo_dir/claude-json.partial.jso
     trap 'rmdir "$gclock" 2>/dev/null || true' EXIT
     # Temp file lives beside the target so the mv is atomic (same fs).
     tmp="$(mktemp "$gconfig.tmp.XXXXXX")"
-    if jq -s "$merge_def merge(.[0]; .[1])" "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
+    if jq -s "$merge_def merge_files" "$gconfig" "$repo_dir/claude-json.partial.json" > "$tmp" \
        && [[ -s "$tmp" ]] \
        && ! diff -q <(jq -S . "$gconfig") <(jq -S . "$tmp") >/dev/null 2>&1; then
       bak="$(free_path "$gconfig.bak.$ts")"
