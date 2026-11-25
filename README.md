@@ -13,7 +13,8 @@ Currently tracks:
 - `skills/<name>/` — Claude skills (a `SKILL.md` plus its scripts),
   each symlinked to `~/.claude/skills/<name>`. Skills not in this repo
   are left alone; an existing skill of the same name is moved to
-  `~/.claude/skills.bak.<timestamp>/<name>` first.
+  `~/.claude/skills.bak.<timestamp>/<name>` first. A link into this
+  repo at a skill or command it no longer has is deleted.
   `benchmark-checklist`, `blast-radius`, `hillclimb`, `trace-forensics`,
   `statechart` and the two `*-formal-verification-skill` skills are
   adapted from [pstack](https://github.com/cursor/plugins/tree/41e400932eca14f289e7db717a70455256b6d388/pstack)

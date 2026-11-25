@@ -85,6 +85,20 @@ link_one() {
   echo "link $label -> $src"
 }
 
+# Delete the links in $1 that point into $2 at an entry the link loops no
+# longer install: one without the file "$entry$3". A link pointing
+# anywhere else was not made by this script and stays.
+prune_links() {
+  local dir="$1" srcdir="$2" need="$3" label="$4" dst tgt
+  for dst in "$dir"/*; do
+    [[ -L "$dst" ]] || continue
+    tgt="$(readlink "$dst")"
+    [[ "$tgt" == "$srcdir"/* && ! -f "$tgt$need" ]] || continue
+    rm "$dst"
+    echo "drop $label/${dst##*/} — $tgt no longer in repo"
+  done
+}
+
 installed_any=0
 for entry in "${targets[@]}"; do
   read -r bin dir name <<< "$entry"
@@ -125,6 +139,15 @@ if command -v claude >/dev/null 2>&1 && [[ -d "$repo_dir/skills" ]]; then
     link_one "$src" "$HOME/.claude/skills/$name" "claude:skills/$name" \
       "$HOME/.claude/skills.bak.$ts/$name"
   done
+fi
+
+# Outside the -d guards above: removing the last command or skill removes
+# its directory, and that is when stale links are left. A removed skill's
+# directory can survive a pull through ignored files (__pycache__), so a
+# skill counts as removed once its SKILL.md is gone.
+if command -v claude >/dev/null 2>&1; then
+  prune_links "$HOME/.claude/commands" "$repo_dir/commands" "" "claude:commands"
+  prune_links "$HOME/.claude/skills" "$repo_dir/skills" "/SKILL.md" "claude:skills"
 fi
 
 # caucus: global settings.toml. A symlink, like CLAUDE.md, because
