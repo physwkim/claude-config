@@ -34,6 +34,8 @@ Prefer Rust-ported tools: `rg` (not grep; mandatory in audits), `fd` (find), `ez
 
 `rg -r`/`--replace` only rewrites PRINTED output; no rg flag modifies files (edit with Edit, or `sd` in shell). Replacement: `$1`/`$name`/`$0`; `${1}a` to append text (`$1a` means the group named `1a`); an unknown group expands empty; `$$` is a literal `$`; only the matched span is replaced (match the whole line to rewrite it); single-quote pattern and replacement so the shell keeps `$1`; composes with `-o`, ignored under `--json`. `-e` for patterns starting with `-`, `-F` for literals.
 
+Stop only processes you started, by the handle you hold (TaskStop, a recorded `$!`, the panel). Never `pkill`, `killall` or `pgrep … | xargs kill` by name or `-f` pattern: it matches every session's processes on the machine, and a `pkill -f nextest` in one session killed another session's test run.
+
 macOS: `gtimeout` (brew coreutils) instead of `timeout`; GNU tools as `gdate`, `gsed`, `gfind`, `greadlink`, `gxargs` when GNU semantics are needed.
 
 # Rust default checks
